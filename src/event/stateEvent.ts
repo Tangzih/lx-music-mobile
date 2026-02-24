@@ -121,6 +121,22 @@ export class StateEvent extends Event {
   sourceNamesUpdated(names: CommonState['sourceNames']) {
     this.emit('sourceNamesUpdated', names)
   }
+
+  recommendListUpdated(list: LX.Music.MusicInfoOnline[]) {
+    this.emit('recommendListUpdated', list)
+  }
+
+  recommendLoadingUpdated(isLoading: boolean) {
+    this.emit('recommendLoadingUpdated', isLoading)
+  }
+
+  recommendErrorUpdated(error: string | null) {
+    this.emit('recommendErrorUpdated', error)
+  }
+
+  recommendProgressUpdated(progress: string) {
+    this.emit('recommendProgressUpdated', progress)
+  }
 }
 
 

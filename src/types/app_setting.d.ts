@@ -350,6 +350,26 @@ declare global {
        * 是否启用同步
        */
       'sync.enable': boolean
+
+      /**
+       * 推荐歌曲 API 地址
+       */
+      'recommend.apiHost': string
+
+      /**
+       * 推荐歌曲 API 密钥
+       */
+      'recommend.apiKey': string
+
+      /**
+       * 单次分析歌曲数量
+       */
+      'recommend.analyzeCount': number
+
+      /**
+       * 推荐歌曲数量
+       */
+      'recommend.recommendCount': number
     }
   }
 }

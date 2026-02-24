@@ -78,6 +78,11 @@ const defaultSetting: LX.AppSetting = {
   'theme.hideBgDark': false,
   'theme.dynamicBg': false,
   'theme.fontShadow': false,
+
+  'recommend.apiHost': '',
+  'recommend.apiKey': '',
+  'recommend.analyzeCount': 20,
+  'recommend.recommendCount': 10,
 }
 
 
