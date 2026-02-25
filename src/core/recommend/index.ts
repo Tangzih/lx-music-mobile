@@ -128,7 +128,10 @@ export const fetchRecommendations = async(
   onError?: (error: string) => void,
   onProgress?: (status: string) => void
 ): Promise<LX.Music.MusicInfoOnline[]> => {
-  const { apiHost, apiKey, analyzeCount, recommendCount } = settingState.setting
+  const apiHost = settingState.setting['recommend.apiHost']
+  const apiKey = settingState.setting['recommend.apiKey']
+  const analyzeCount = settingState.setting['recommend.analyzeCount']
+  const recommendCount = settingState.setting['recommend.recommendCount']
 
   // 检查 API 配置
   if (!apiHost || !apiKey) {
