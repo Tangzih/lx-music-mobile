@@ -29,13 +29,13 @@ export default memo(() => {
           {t('nav_recommend')}
         </Text>
         <Button onPress={handleGetRecommendations} disabled={isLoading}>
-          {t('recommend_get')}
+          <Text size={14} color={theme['c-primary']}>{t('recommend_get')}</Text>
         </Button>
       </View>
 
       {isLoading ? (
         <View style={styles.loadingContainer}>
-          <Loading text={progress || t('recommend_loading')} />
+          <Loading label={progress || t('recommend_loading')} />
         </View>
       ) : error ? (
         <View style={styles.errorContainer}>
