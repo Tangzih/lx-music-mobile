@@ -3,9 +3,9 @@ import { useI18n } from '@/lang'
 import { createStyle } from '@/utils/tools'
 import { memo } from 'react'
 import { View } from 'react-native'
-
-import SwitchItem from '../../components/SwitchItem'
 import { useSettingValue } from '@/store/setting/hook'
+
+import CheckBoxItem from '../../components/CheckBoxItem'
 
 export default memo(() => {
   const t = useI18n()
@@ -17,11 +17,7 @@ export default memo(() => {
 
   return (
     <View style={styles.content}>
-      <SwitchItem
-        label={t('recommend_enable_log')}
-        value={enableLog}
-        onChanged={handleUpdate}
-      />
+      <CheckBoxItem check={enableLog} label={t('recommend_enable_log')} onChange={handleUpdate} />
     </View>
   )
 })
