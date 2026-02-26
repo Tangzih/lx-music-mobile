@@ -7,6 +7,7 @@ import settingState from '@/store/setting/state'
 import listState from '@/store/list/state'
 import { getListMusics } from '@/utils/listManage'
 import { search } from '@/core/search/music'
+import { addAILog } from '@/store/recommend/logAction'
 
 /**
  * 获取用户歌单中的歌曲（简单模式：仅歌曲名和歌手信息）
@@ -60,17 +61,27 @@ export const getCurrentMusicIds = (): Set<string> => {
  * 构建 AI 提示词
  * @param musicList 歌曲列表
  * @param recommendCount 推荐数量
+ * @param extraPrompt 附加提示词
  * @returns 提示词
  */
-export const buildPrompt = (musicList: string[], recommendCount: number): string => {
-  if (musicList.length === 0) {
-    return '用户歌单为空，请随机推荐一些热门歌曲。'
-  }
+export const buildPrompt = (musicList: string[], recommendCount: number, extraPrompt?: string): string => {
+  let prompt: string
 
-  return `用户常听的歌曲：
+  if (musicList.length === 0) {
+    prompt = '用户歌单为空，请随机推荐一些热门歌曲。'
+  } else {
+    prompt = `用户常听的歌曲：
 ${musicList.map((song, index) => `${index + 1}. ${song}`).join('\n')}
 
 请分析这些歌曲，推测用户的音乐喜好，并推荐${recommendCount}首可能喜欢的新歌曲。`
+  }
+
+  // 添加附加提示词
+  if (extraPrompt && extraPrompt.trim()) {
+    prompt += `\n\n附加要求：${extraPrompt.trim()}`
+  }
+
+  return prompt
 }
 
 /**
@@ -133,6 +144,7 @@ export const fetchRecommendations = async(
   const model = settingState.setting['recommend.model']
   const analyzeCount = settingState.setting['recommend.analyzeCount']
   const recommendCount = settingState.setting['recommend.recommendCount']
+  const extraPrompt = settingState.setting['recommend.extraPrompt']
 
   // 检查 API 配置
   if (!apiHost || !apiKey) {
@@ -147,18 +159,27 @@ export const fetchRecommendations = async(
     const musicList = await getUserMusicList(analyzeCount)
 
     // 2. 构建提示词
-    const prompt = buildPrompt(musicList, recommendCount)
+    const prompt = buildPrompt(musicList, recommendCount, extraPrompt)
 
     // 3. 调用 AI API 获取推荐
     onProgress?.('获取 AI 推荐中...')
-    const recommendedSongs = await callRecommendAPI(apiHost, apiKey, model, prompt, recommendCount)
+    const { songs: recommendedSongs, response } = await callRecommendAPI(apiHost, apiKey, model, prompt, recommendCount)
 
-    // 4. 获取现有歌曲 ID 用于去重
+    // 4. 记录 AI 日志
+    addAILog({
+      model,
+      prompt,
+      response,
+      requestSongs: musicList,
+      recommendedSongs,
+    })
+
+    // 5. 获取现有歌曲 ID 用于去重
     const existingIds = getCurrentMusicIds()
     const searchedSongs = new Set<string>()
     const result: LX.Music.MusicInfoOnline[] = []
 
-    // 5. 搜索推荐歌曲
+    // 6. 搜索推荐歌曲
     onProgress?.('搜索推荐歌曲中...')
     for (const songName of recommendedSongs) {
       // 去重检查

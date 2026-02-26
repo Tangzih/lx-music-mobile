@@ -84,6 +84,9 @@ const defaultSetting: LX.AppSetting = {
   'recommend.analyzeCount': 20,
   'recommend.recommendCount': 10,
   'recommend.model': 'gpt-3.5-turbo',
+  'recommend.enableLog': false,
+  'recommend.continuousRecommend': false,
+  'recommend.extraPrompt': '',
 }
 
 

@@ -1,5 +1,5 @@
-import { memo } from 'react'
-import { View, ScrollView } from 'react-native'
+import { memo, useCallback, useRef, useEffect } from 'react'
+import { View } from 'react-native'
 import { useI18n } from '@/lang'
 import { createStyle } from '@/utils/tools'
 import { useTheme } from '@/store/theme/hook'
@@ -7,8 +7,23 @@ import Text from '@/components/common/Text'
 import Button from '@/components/common/Button'
 import { useRecommendList, useRecommendLoading, useRecommendError, useRecommendProgress } from '@/store/recommend/hook'
 import recommendActions from '@/store/recommend/action'
-import List from './List'
+import List, { type ListType } from './List'
 import Loading from '@/components/common/Loading'
+import ListMenu, { type ListMenuType, type Position, type SelectInfo } from './ListMenu'
+import MultipleModeBar, { type SelectMode, type MultipleModeBarType } from './MultipleModeBar'
+import ListMusicAdd, { type MusicAddModalType as ListMusicAddType } from '@/components/MusicAddModal'
+import ListMusicMultiAdd, { type MusicMultiAddModalType as ListAddMultiType } from '@/components/MusicMultiAddModal'
+import { playList, playNext } from '@/core/player/player'
+import { addTempPlayList } from '@/core/player/tempPlayList'
+import { shareMusic } from '@/utils/tools'
+import settingState from '@/store/setting/state'
+import { addDislikeInfo, hasDislike } from '@/core/dislikeList'
+import { confirmDialog, openUrl, toast } from '@/utils/tools'
+import playerState from '@/store/player/state'
+import { usePlayInfo, usePlayMusicInfo } from '@/store/player/hook'
+import musicSdk from '@/utils/musicSdk'
+import { toOldMusicInfo } from '@/utils'
+import recommendState from '@/store/recommend/state'
 
 export default memo(() => {
   const t = useI18n()
@@ -17,10 +32,140 @@ export default memo(() => {
   const isLoading = useRecommendLoading()
   const error = useRecommendError()
   const progress = useRecommendProgress()
+  const listRef = useRef<ListType>(null)
+  const listMenuRef = useRef<ListMenuType>(null)
+  const multipleModeBarRef = useRef<MultipleModeBarType>(null)
+  const listMusicAddRef = useRef<ListMusicAddType>(null)
+  const listMusicMultiAddRef = useRef<ListAddMultiType>(null)
+  const isMultiSelectModeRef = useRef(false)
+  const playMusicInfo = usePlayMusicInfo()
+  const playInfo = usePlayInfo()
 
-  const handleGetRecommendations = () => {
+  // 持续推荐：监听播放状态变化
+  useEffect(() => {
+    const checkContinuousRecommend = async() => {
+      // 检查是否启用持续推荐
+      if (!settingState.setting['recommend.continuousRecommend']) return
+
+      // 检查是否正在播放推荐列表（临时列表）
+      if (playMusicInfo.listId !== 'temp') return
+
+      // 检查是否正在加载
+      if (recommendState.isLoading) return
+
+      // 获取当前播放索引和列表长度
+      const currentIndex = playInfo.playIndex
+      const listLength = recommendState.recommendList.length
+
+      // 如果列表为空，不处理
+      if (listLength === 0) return
+
+      // 当播放到倒数第二首时开始获取新推荐
+      if (currentIndex >= listLength - 2 && currentIndex >= 0) {
+        await recommendActions.appendRecommendations()
+      }
+    }
+
+    void checkContinuousRecommend()
+  }, [playMusicInfo.listId, playInfo.playIndex])
+
+  const handleGetRecommendations = useCallback(() => {
     void recommendActions.getRecommendations()
-  }
+  }, [])
+
+  const handleMultiSelect = useCallback(() => {
+    isMultiSelectModeRef.current = true
+    multipleModeBarRef.current?.show()
+    listRef.current?.setIsMultiSelectMode(true)
+  }, [])
+
+  const handleExitSelect = useCallback(() => {
+    multipleModeBarRef.current?.exitSelectMode()
+    listRef.current?.setIsMultiSelectMode(false)
+    isMultiSelectModeRef.current = false
+  }, [])
+
+  const handleSwitchSelectMode = useCallback((mode: SelectMode) => {
+    multipleModeBarRef.current?.setSwitchMode(mode)
+    listRef.current?.setSelectMode(mode)
+  }, [])
+
+  const showMenu = useCallback((musicInfo: LX.Music.MusicInfo, index: number, position: Position) => {
+    listMenuRef.current?.show({
+      musicInfo,
+      index,
+      listId: 'temp',
+      single: false,
+      selectedList: listRef.current?.getSelectedList() ?? [],
+    }, position)
+  }, [])
+
+  // 播放
+  const handlePlay = useCallback((info: SelectInfo) => {
+    void playList('temp', info.index)
+  }, [])
+
+  // 稍后播放
+  const handlePlayLater = useCallback((info: SelectInfo) => {
+    if (info.selectedList.length) {
+      addTempPlayList(info.selectedList.map(s => ({ listId: 'temp', musicInfo: s })))
+      handleExitSelect()
+    } else {
+      addTempPlayList([{ listId: 'temp', musicInfo: info.musicInfo }])
+    }
+  }, [handleExitSelect])
+
+  // 添加到歌单
+  const handleAddMusic = useCallback((info: SelectInfo) => {
+    if (info.selectedList.length) {
+      listMusicMultiAddRef.current?.show({ selectedList: info.selectedList, listId: 'temp', isMove: false })
+    } else {
+      listMusicAddRef.current?.show({ musicInfo: info.musicInfo, listId: 'temp', isMove: false })
+    }
+  }, [])
+
+  // 从推荐列表移除
+  const handleRemove = useCallback((info: SelectInfo) => {
+    const removeIds = info.selectedList.length
+      ? info.selectedList.map(s => s.id)
+      : [info.musicInfo.id]
+
+    // 从推荐列表中移除
+    const newList = recommendState.recommendList.filter(m => !removeIds.includes(m.id))
+    recommendActions.setRecommendList(newList)
+
+    handleExitSelect()
+  }, [handleExitSelect])
+
+  // 复制名称
+  const handleCopyName = useCallback((info: SelectInfo) => {
+    shareMusic(settingState.setting['common.shareType'], settingState.setting['download.fileName'], info.musicInfo)
+  }, [])
+
+  // 不喜欢
+  const handleDislikeMusic = useCallback(async(info: SelectInfo) => {
+    const confirm = await confirmDialog({
+      message: info.musicInfo.singer
+        ? global.i18n.t('lists_dislike_music_singer_tip', { name: info.musicInfo.name, singer: info.musicInfo.singer })
+        : global.i18n.t('lists_dislike_music_tip', { name: info.musicInfo.name }),
+      cancelButtonText: global.i18n.t('cancel_button_text_2'),
+      confirmButtonText: global.i18n.t('confirm_button_text'),
+      bgClose: false,
+    })
+    if (!confirm) return
+    await addDislikeInfo([{ name: info.musicInfo.name, singer: info.musicInfo.singer }])
+    toast(global.i18n.t('lists_dislike_music_add_tip'))
+    if (hasDislike(playerState.playMusicInfo.musicInfo)) {
+      void playNext(true)
+    }
+  }, [])
+
+  // 音乐源详情
+  const handleMusicSourceDetail = useCallback((info: SelectInfo) => {
+    const url = musicSdk[info.musicInfo.source as LX.OnlineSource]?.getMusicDetailPageUrl(toOldMusicInfo(info.musicInfo))
+    if (!url) return
+    void openUrl(url)
+  }, [])
 
   return (
     <View style={styles.container}>
@@ -50,8 +195,35 @@ export default memo(() => {
           </Text>
         </View>
       ) : (
-        <List musicList={recommendList} />
+        <>
+          <List
+            ref={listRef}
+            musicList={recommendList}
+            onShowMenu={showMenu}
+            onMuiltSelectMode={handleMultiSelect}
+            onSelectAll={isAll => listRef.current?.selectAll(isAll)}
+          />
+          <MultipleModeBar
+            ref={multipleModeBarRef}
+            onSwitchMode={handleSwitchSelectMode}
+            onSelectAll={isAll => listRef.current?.selectAll(isAll)}
+            onExitSelectMode={handleExitSelect}
+          />
+        </>
       )}
+
+      <ListMenu
+        ref={listMenuRef}
+        onPlay={handlePlay}
+        onPlayLater={handlePlayLater}
+        onAdd={handleAddMusic}
+        onCopyName={handleCopyName}
+        onDislikeMusic={handleDislikeMusic}
+        onRemove={handleRemove}
+        onMusicSourceDetail={handleMusicSourceDetail}
+      />
+      <ListMusicAdd ref={listMusicAddRef} onAdded={handleExitSelect} />
+      <ListMusicMultiAdd ref={listMusicMultiAddRef} onAdded={handleExitSelect} />
     </View>
   )
 })

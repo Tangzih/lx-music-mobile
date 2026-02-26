@@ -375,6 +375,21 @@ declare global {
        * 推荐歌曲 AI 模型
        */
       'recommend.model': string
+
+      /**
+       * 是否启用 AI 日志
+       */
+      'recommend.enableLog': boolean
+
+      /**
+       * 是否启用持续推荐（播放到最后一首后自动继续分析）
+       */
+      'recommend.continuousRecommend': boolean
+
+      /**
+       * 附加提示词
+       */
+      'recommend.extraPrompt': string
     }
   }
 }

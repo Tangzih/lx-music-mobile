@@ -6,6 +6,10 @@ import ApiKey from './ApiKey'
 import Model from './Model'
 import AnalyzeCount from './AnalyzeCount'
 import RecommendCount from './RecommendCount'
+import EnableLog from './EnableLog'
+import ContinuousRecommend from './ContinuousRecommend'
+import ExtraPrompt from './ExtraPrompt'
+import ViewLog from './ViewLog'
 
 import { useI18n } from '@/lang'
 
@@ -19,6 +23,10 @@ export default memo(() => {
       <Model />
       <AnalyzeCount />
       <RecommendCount />
+      <ContinuousRecommend />
+      <ExtraPrompt />
+      <EnableLog />
+      <ViewLog />
     </Section>
   )
 })

@@ -1,4 +1,4 @@
-import { memo, useRef, useState, useEffect, forwardRef, useImperativeHandle, useMemo } from 'react'
+import { memo, useRef, useState, useEffect, forwardRef, useImperativeHandle, useMemo, useCallback } from 'react'
 import { FlatList, type NativeScrollEvent, type NativeSyntheticEvent, type FlatListProps } from 'react-native'
 
 import ListItem, { ITEM_HEIGHT } from './ListItem'
@@ -13,6 +13,9 @@ type FlatListType = FlatListProps<LX.Music.MusicInfo>
 
 export interface ListProps {
   musicList: LX.Music.MusicInfoOnline[]
+  onShowMenu: (musicInfo: LX.Music.MusicInfo, index: number, position: Position) => void
+  onMuiltSelectMode: () => void
+  onSelectAll: (isAll: boolean) => void
 }
 
 export interface ListType {
@@ -24,7 +27,7 @@ export interface ListType {
   scrollToTop: () => void
 }
 
-const List = forwardRef<ListType, ListProps>(({ musicList }, ref) => {
+const List = forwardRef<ListType, ListProps>(({ musicList, onShowMenu, onMuiltSelectMode, onSelectAll }, ref) => {
   const flatListRef = useRef<FlatList>(null)
   const [currentList, setList] = useState<LX.List.ListMusics>([])
   const isMultiSelectModeRef = useRef(false)
@@ -87,16 +90,16 @@ const List = forwardRef<ListType, ListProps>(({ musicList }, ref) => {
     return playMusicInfo.listId == 'temp' ? playInfo.playIndex : -1
   }, [playMusicInfo.listId, playInfo.playIndex])
 
-  const handlePlay = (index: number) => {
+  const handlePlay = useCallback((index: number) => {
     void playList('temp', index)
-  }
+  }, [])
 
-  const handleUpdateSelectedList = (newList: LX.List.ListMusics) => {
+  const handleUpdateSelectedList = useCallback((newList: LX.List.ListMusics) => {
     selectedListRef.current = newList
     setSelectedList(newList)
-  }
+  }, [])
 
-  const handleSelect = (item: LX.Music.MusicInfo, pressIndex: number) => {
+  const handleSelect = useCallback((item: LX.Music.MusicInfo, pressIndex: number) => {
     let newList: LX.List.ListMusics
     if (selectModeRef.current == 'single') {
       prevSelectIndexRef.current = pressIndex
@@ -126,29 +129,27 @@ const List = forwardRef<ListType, ListProps>(({ musicList }, ref) => {
     }
 
     handleUpdateSelectedList(newList)
-  }
+  }, [currentList, handleUpdateSelectedList])
 
-  const handlePress = (item: LX.Music.MusicInfo, index: number) => {
+  const handlePress = useCallback((item: LX.Music.MusicInfo, index: number) => {
     if (!global.lx.homePagerIdle) return
     if (isMultiSelectModeRef.current) {
       handleSelect(item, index)
     } else {
       handlePlay(index)
     }
-  }
+  }, [handleSelect, handlePlay])
 
-  const handleLongPress = (item: LX.Music.MusicInfo, index: number) => {
+  const handleLongPress = useCallback((item: LX.Music.MusicInfo, index: number) => {
     if (isMultiSelectModeRef.current) return
     prevSelectIndexRef.current = index
     handleUpdateSelectedList([item])
-    // TODO: 进入多选模式
-    // onMuiltSelectMode()
-  }
+    onMuiltSelectMode()
+  }, [handleUpdateSelectedList, onMuiltSelectMode])
 
-  const handleShowMenu = (item: LX.Music.MusicInfo, index: number, position: Position) => {
-    // TODO: 显示菜单
-    console.log('show menu', item, index, position)
-  }
+  const handleShowMenu = useCallback((item: LX.Music.MusicInfo, index: number, position: Position) => {
+    onShowMenu(item, index, position)
+  }, [onShowMenu])
 
   const renderItem: FlatListType['renderItem'] = ({ item, index }) => (
     <ListItem
@@ -171,6 +172,12 @@ const List = forwardRef<ListType, ListProps>(({ musicList }, ref) => {
     return { length: ITEM_HEIGHT, offset: ITEM_HEIGHT * index, index }
   }
 
+  // extraData 需要包含所有会影响渲染的数据
+  const extraData = useMemo(() => ({
+    activeIndex,
+    selectedList,
+  }), [activeIndex, selectedList])
+
   return (
     <FlatList
       ref={flatListRef}
@@ -184,7 +191,7 @@ const List = forwardRef<ListType, ListProps>(({ musicList }, ref) => {
       initialNumToRender={12}
       renderItem={renderItem}
       keyExtractor={getkey}
-      extraData={activeIndex}
+      extraData={extraData}
       getItemLayout={getItemLayout}
     />
   )

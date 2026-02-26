@@ -1,6 +1,8 @@
 import recommendState from './state'
-import { setTempList } from '@/core/list'
+import { setTempList, addListMusics } from '@/core/list'
 import { fetchRecommendations } from '@/core/recommend'
+import settingState from '@/store/setting/state'
+import playerState from '@/store/player/state'
 
 /**
  * 设置推荐歌曲列表
@@ -66,6 +68,69 @@ const getRecommendations = async(): Promise<void> => {
 }
 
 /**
+ * 追加推荐歌曲到列表末尾
+ */
+const appendRecommendations = async(): Promise<void> => {
+  setIsLoading(true)
+  setError(null)
+
+  try {
+    // 1. 获取推荐歌曲
+    const recommendations = await fetchRecommendations(
+      (error) => setError(error),
+      (status) => setProgress(status)
+    )
+
+    // 2. 追加到临时列表
+    if (recommendations.length > 0) {
+      const currentList = recommendState.recommendList
+      const newList = [...currentList, ...recommendations]
+
+      // 更新临时列表
+      await addListMusics('temp', recommendations, 'bottom')
+      setRecommendList(newList)
+      setProgress('')
+    } else {
+      setError('未找到推荐的歌曲')
+      setProgress('')
+    }
+  } catch (error: any) {
+    setError(error.message || '获取推荐失败')
+    setProgress('')
+  } finally {
+    setIsLoading(false)
+  }
+}
+
+/**
+ * 检查是否需要持续推荐
+ * 当播放到推荐列表最后一首时自动追加新歌曲
+ */
+const checkContinuousRecommend = async() => {
+  // 检查是否启用持续推荐
+  if (!settingState.setting['recommend.continuousRecommend']) return
+
+  // 检查是否正在播放推荐列表（临时列表）
+  if (playerState.playMusicInfo.listId !== 'temp') return
+
+  // 检查是否正在加载
+  if (recommendState.isLoading) return
+
+  // 获取当前播放索引和列表长度
+  const currentIndex = playerState.playInfo.playIndex
+  const listLength = recommendState.recommendList.length
+
+  // 如果列表为空，不处理
+  if (listLength === 0) return
+
+  // 当播放到倒数第二首时开始获取新推荐
+  // 这样可以确保在播放到最后一首时新歌曲已经准备好
+  if (currentIndex >= listLength - 2) {
+    await appendRecommendations()
+  }
+}
+
+/**
  * 清空推荐列表
  */
 const clearRecommendList = () => {
@@ -80,5 +145,7 @@ export default {
   setError,
   setProgress,
   getRecommendations,
+  appendRecommendations,
+  checkContinuousRecommend,
   clearRecommendList,
 }

@@ -31,6 +31,11 @@ interface ChatCompletionResponse {
   }
 }
 
+export interface RecommendAPIResult {
+  songs: string[]
+  response: string
+}
+
 /**
  * 调用 OpenAI 格式 API 获取推荐歌曲
  * @param apiHost API 地址
@@ -38,7 +43,7 @@ interface ChatCompletionResponse {
  * @param model 模型名称
  * @param prompt 提示词
  * @param recommendCount 推荐歌曲数量
- * @returns 推荐歌曲名列表
+ * @returns 推荐歌曲名列表和原始响应
  */
 export const callRecommendAPI = async(
   apiHost: string,
@@ -46,7 +51,7 @@ export const callRecommendAPI = async(
   model: string,
   prompt: string,
   recommendCount: number
-): Promise<string[]> => {
+): Promise<RecommendAPIResult> => {
   const url = apiHost.replace(/\/+$/, '') + '/chat/completions'
 
   const requestBody: ChatCompletionRequest = {
@@ -91,13 +96,14 @@ export const callRecommendAPI = async(
   const content = data.choices[0].message.content.trim()
 
   // 尝试解析 JSON 数组
+  let songs: string[] = []
   try {
     // 尝试直接解析 JSON
     const jsonMatch = content.match(/\[[\s\S]*\]/)
     if (jsonMatch) {
       const jsonArray = JSON.parse(jsonMatch[0])
       if (Array.isArray(jsonArray)) {
-        return jsonArray.filter((item: any) => typeof item === 'string' && item.trim())
+        songs = jsonArray.filter((item: any) => typeof item === 'string' && item.trim())
       }
     }
   } catch (e) {
@@ -105,16 +111,19 @@ export const callRecommendAPI = async(
   }
 
   // 如果不是 JSON 格式，尝试按行解析
-  const lines = content.split('\n').filter(line => line.trim())
-  const songs: string[] = []
-
-  for (const line of lines) {
-    // 移除可能的项目符号、数字前缀等
-    const cleaned = line.replace(/^[\s]*[-*•\d.)]+\s*/, '').trim()
-    if (cleaned) {
-      songs.push(cleaned)
+  if (songs.length === 0) {
+    const lines = content.split('\n').filter(line => line.trim())
+    for (const line of lines) {
+      // 移除可能的项目符号、数字前缀等
+      const cleaned = line.replace(/^[\s]*[-*•\d.)]+\s*/, '').trim()
+      if (cleaned) {
+        songs.push(cleaned)
+      }
     }
   }
 
-  return songs
+  return {
+    songs,
+    response: content,
+  }
 }

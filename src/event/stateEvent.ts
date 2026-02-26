@@ -137,6 +137,14 @@ export class StateEvent extends Event {
   recommendProgressUpdated(progress: string) {
     this.emit('recommendProgressUpdated', progress)
   }
+
+  recommendAILogAdded(log: LX.Recommend.AILogEntry) {
+    this.emit('recommendAILogAdded', log)
+  }
+
+  recommendAILogCleared() {
+    this.emit('recommendAILogCleared')
+  }
 }
 
 

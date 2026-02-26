@@ -69,13 +69,19 @@ export default memo(({ item, index, activeIndex, onPress, onShowMenu, onLongPres
     </View>
   )
 }, (prevProps, nextProps) => {
+  // 返回 true 表示不需要重新渲染
+  // 需要重新渲染的情况：
+  // 1. activeIndex 变化导致当前项的 active 状态改变
+  // 2. selectedList 中是否包含当前项的状态改变
+  const prevActive = prevProps.activeIndex === prevProps.index
+  const nextActive = nextProps.activeIndex === nextProps.index
+
   return !!(prevProps.item === nextProps.item &&
     prevProps.index === nextProps.index &&
     prevProps.isShowAlbumName === nextProps.isShowAlbumName &&
     prevProps.isShowInterval === nextProps.isShowInterval &&
-    nextProps.activeIndex != nextProps.index &&
-    nextProps.activeIndex != prevProps.index &&
-    nextProps.selectedList.includes(nextProps.item) == prevProps.selectedList.includes(nextProps.item)
+    prevActive === nextActive &&
+    nextProps.selectedList.includes(nextProps.item) === prevProps.selectedList.includes(prevProps.item)
   )
 })
 
