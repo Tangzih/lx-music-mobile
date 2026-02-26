@@ -311,6 +311,7 @@
   "setting_recommend": "Recommend Settings",
   "recommend_api_host": "API Host",
   "recommend_api_key": "API Key",
+  "recommend_model": "Model Name",
   "recommend_analyze_count": "Analyze Count",
   "recommend_recommend_count": "Recommend Count",
   "setting_list": "List",

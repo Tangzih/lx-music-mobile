@@ -35,6 +35,7 @@ interface ChatCompletionResponse {
  * 调用 OpenAI 格式 API 获取推荐歌曲
  * @param apiHost API 地址
  * @param apiKey API 密钥
+ * @param model 模型名称
  * @param prompt 提示词
  * @param recommendCount 推荐歌曲数量
  * @returns 推荐歌曲名列表
@@ -42,13 +43,14 @@ interface ChatCompletionResponse {
 export const callRecommendAPI = async(
   apiHost: string,
   apiKey: string,
+  model: string,
   prompt: string,
   recommendCount: number
 ): Promise<string[]> => {
   const url = apiHost.replace(/\/+$/, '') + '/chat/completions'
 
   const requestBody: ChatCompletionRequest = {
-    model: 'gpt-3.5-turbo',
+    model: model || 'gpt-3.5-turbo',
     messages: [
       {
         role: 'system',

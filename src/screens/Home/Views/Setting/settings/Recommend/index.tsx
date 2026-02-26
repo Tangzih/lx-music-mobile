@@ -3,6 +3,7 @@ import { memo } from 'react'
 import Section from '../../components/Section'
 import ApiHost from './ApiHost'
 import ApiKey from './ApiKey'
+import Model from './Model'
 import AnalyzeCount from './AnalyzeCount'
 import RecommendCount from './RecommendCount'
 
@@ -15,6 +16,7 @@ export default memo(() => {
     <Section title={t('setting_recommend')}>
       <ApiHost />
       <ApiKey />
+      <Model />
       <AnalyzeCount />
       <RecommendCount />
     </Section>

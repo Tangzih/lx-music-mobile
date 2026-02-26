@@ -311,6 +311,7 @@
   "setting_recommend": "推薦設定",
   "recommend_api_host": "API 位址",
   "recommend_api_key": "API 金鑰",
+  "recommend_model": "模型名稱",
   "recommend_analyze_count": "單次分析歌曲數量",
   "recommend_recommend_count": "推薦歌曲數量",
   "setting_list": "清單設定",

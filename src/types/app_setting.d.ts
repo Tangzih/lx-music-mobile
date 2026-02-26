@@ -370,6 +370,11 @@ declare global {
        * 推荐歌曲数量
        */
       'recommend.recommendCount': number
+
+      /**
+       * 推荐歌曲 AI 模型
+       */
+      'recommend.model': string
     }
   }
 }

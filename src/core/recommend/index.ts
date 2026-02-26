@@ -130,6 +130,7 @@ export const fetchRecommendations = async(
 ): Promise<LX.Music.MusicInfoOnline[]> => {
   const apiHost = settingState.setting['recommend.apiHost']
   const apiKey = settingState.setting['recommend.apiKey']
+  const model = settingState.setting['recommend.model']
   const analyzeCount = settingState.setting['recommend.analyzeCount']
   const recommendCount = settingState.setting['recommend.recommendCount']
 
@@ -150,7 +151,7 @@ export const fetchRecommendations = async(
 
     // 3. 调用 AI API 获取推荐
     onProgress?.('获取 AI 推荐中...')
-    const recommendedSongs = await callRecommendAPI(apiHost, apiKey, prompt, recommendCount)
+    const recommendedSongs = await callRecommendAPI(apiHost, apiKey, model, prompt, recommendCount)
 
     // 4. 获取现有歌曲 ID 用于去重
     const existingIds = getCurrentMusicIds()

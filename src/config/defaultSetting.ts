@@ -83,6 +83,7 @@ const defaultSetting: LX.AppSetting = {
   'recommend.apiKey': '',
   'recommend.analyzeCount': 20,
   'recommend.recommendCount': 10,
+  'recommend.model': 'gpt-3.5-turbo',
 }
 
 
