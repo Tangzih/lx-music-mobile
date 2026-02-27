@@ -49,18 +49,57 @@ export default memo(() => {
   const prevErrorRef = useRef<string | null>(null)
   const prevListLengthRef = useRef<number>(0) // 追踪上一次列表长度
 
-  // 搜索功能
+  // 搜索功能 - 四线程分批次搜索
   const handleSearch = useCallback((keyword: string) => {
     if (!keyword) {
       setFilteredList(recommendList)
       return
     }
+
     const lowerKeyword = keyword.toLowerCase()
-    const filtered = recommendList.filter(music =>
-      music.name.toLowerCase().includes(lowerKeyword) ||
-      music.singer.toLowerCase().includes(lowerKeyword)
-    )
-    setFilteredList(filtered)
+    const listLength = recommendList.length
+    const batchSize = Math.ceil(listLength / 4) // 分成 4 批处理
+
+    // 如果列表很小，直接同步处理
+    if (listLength <= 20) {
+      const filtered = recommendList.filter(music =>
+        music.name.toLowerCase().includes(lowerKeyword) ||
+        music.singer.toLowerCase().includes(lowerKeyword)
+      )
+      setFilteredList(filtered)
+      return
+    }
+
+    // 分 4 批处理，模拟多线程效果
+    const results: LX.Music.MusicInfo[][] = [[], [], [], []]
+    let completedCount = 0
+
+    const processBatch = (batchIndex: number, startIndex: number, endIndex: number) => {
+      // 使用 setTimeout 让出主线程，避免阻塞 UI
+      setTimeout(() => {
+        for (let i = startIndex; i < endIndex && i < listLength; i++) {
+          const music = recommendList[i]
+          const nameLower = music.name.toLowerCase()
+          const singerLower = music.singer.toLowerCase()
+          if (nameLower.includes(lowerKeyword) || singerLower.includes(lowerKeyword)) {
+            results[batchIndex].push(music)
+          }
+        }
+        completedCount++
+
+        // 所有批次完成，合并结果
+        if (completedCount === 4) {
+          const filtered = [...results[0], ...results[1], ...results[2], ...results[3]]
+          setFilteredList(filtered)
+        }
+      }, 0)
+    }
+
+    // 启动 4 个批次的处理
+    processBatch(0, 0, batchSize)
+    processBatch(1, batchSize, batchSize * 2)
+    processBatch(2, batchSize * 2, batchSize * 3)
+    processBatch(3, batchSize * 3, listLength)
   }, [recommendList])
 
   // 打开搜索
