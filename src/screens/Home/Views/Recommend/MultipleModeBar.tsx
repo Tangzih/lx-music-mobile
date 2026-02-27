@@ -97,7 +97,7 @@ export default forwardRef<MultipleModeBarType, MultipleModeBarProps>(({ onSelect
 
   const animaStyle = useMemo(() => ({
     ...styles.container,
-    backgroundColor: theme['c-content-background'],
+    // backgroundColor: theme['c-content-background'],
     borderBottomColor: theme['c-border-background'],
     opacity: visibleBar ? animFade : 0, // Bind opacity to animated value
     transform: [
@@ -137,12 +137,11 @@ export default forwardRef<MultipleModeBarType, MultipleModeBarProps>(({ onSelect
 
 const styles = createStyle({
   container: {
-    flex: 1,
     position: 'absolute',
     left: 0,
     top: 0,
     width: '100%',
-    height: '100%',
+    height: 46, // 固定高度，与headerContainer一致
     flexDirection: 'row',
     borderBottomWidth: BorderWidths.normal,
   },

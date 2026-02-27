@@ -139,12 +139,11 @@ export default forwardRef<RecommendSearchBarType, RecommendSearchBarProps>(({ on
 
 const styles = createStyle({
   container: {
-    flex: 1,
     position: 'absolute',
     left: 0,
     top: 0,
     width: '100%',
-    height: '100%',
+    height: 46, // 固定高度，与 headerContainer 一致
     flexDirection: 'row',
     paddingLeft: 10,
     borderBottomWidth: BorderWidths.normal,

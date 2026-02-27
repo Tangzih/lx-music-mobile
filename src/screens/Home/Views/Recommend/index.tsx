@@ -45,6 +45,7 @@ export default memo(() => {
   const searchBarRef = useRef<RecommendSearchBarType>(null)
   const [filteredList, setFilteredList] = useState<LX.Music.MusicInfo[]>([])
   const [isSearchMode, setIsSearchMode] = useState(false)
+  const [showHeader, setShowHeader] = useState(true) // 控制header显示/隐藏
   const prevErrorRef = useRef<string | null>(null)
   const prevListLengthRef = useRef<number>(0) // 追踪上一次列表长度
 
@@ -137,6 +138,7 @@ export default memo(() => {
 
   const handleMultiSelect = useCallback(() => {
     isMultiSelectModeRef.current = true
+    setShowHeader(false) // 隐藏header
     multipleModeBarRef.current?.show()
     listRef.current?.setIsMultiSelectMode(true)
   }, [])
@@ -145,6 +147,7 @@ export default memo(() => {
     multipleModeBarRef.current?.exitSelectMode()
     listRef.current?.setIsMultiSelectMode(false)
     isMultiSelectModeRef.current = false
+    setShowHeader(true) // 显示header
   }, [])
 
   const handleSwitchSelectMode = useCallback((mode: SelectMode) => {
@@ -232,8 +235,8 @@ export default memo(() => {
 
   return (
     <View style={styles.container}>
-      <View style={{ zIndex: 2 }}>
-        <View style={styles.header}>
+      <View style={styles.headerContainer}>
+        <View style={{ ...styles.header, opacity: showHeader ? 1 : 0 }}>
           <Text style={styles.title} size={16} color={theme['c-font']}>
             {isLoading && recommendList.length > 0 ? (progress || t('recommend_loading')) : t('nav_recommend')}
           </Text>
@@ -307,6 +310,10 @@ const styles = createStyle({
     flex: 1,
     paddingTop: 10,
   },
+  headerContainer: {
+    zIndex: 2,
+    height: 46, // 固定高度，与header + padding一致
+  },
   header: {
     flexDirection: 'row',
     justifyContent: 'space-between',
@@ -314,6 +321,7 @@ const styles = createStyle({
     paddingLeft: 15,
     paddingRight: 15,
     paddingBottom: 10,
+    height: 46, // 固定高度
   },
   headerButtons: {
     flexDirection: 'row',
