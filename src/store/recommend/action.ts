@@ -82,23 +82,30 @@ const initRecommendList = async() => {
 }
 
 /**
- * 检查是否需要自动清空
+ * 检查是否需要自动清空（只在应用启动时调用）
+ * 注意：如果用户正在播放推荐列表的歌曲，不清空
  */
-const checkAutoClear = () => {
+const checkAutoClear = async() => {
   const autoClear = settingState.setting['recommend.autoClear']
   const autoClearHours = settingState.setting['recommend.autoClearHours']
 
-  // 如果未启用自动清空或时间为0，不处理
+  // 如果未启用自动清空或时间为 0，不处理
   if (!autoClear || autoClearHours <= 0) return
+
+  // 如果用户正在播放推荐列表的歌曲，不清空（避免打断播放）
+  if (playerState.playMusicInfo.listId === 'temp' && recommendState.recommendList.length > 0) {
+    console.log('[推荐] 用户正在播放推荐列表，跳过自动清空')
+    return
+  }
 
   const now = Date.now()
   const lastClearTime = recommendState.lastClearTime || now
   const hoursPassed = (now - lastClearTime) / (1000 * 60 * 60)
 
-  // 如果超过设定时间，清空列表
+  // 如果超过设定时间，清空推荐列表
   if (hoursPassed >= autoClearHours) {
-    console.log('[推荐] 达到自动清空时间，清空推荐列表')
-    clearRecommendList()
+    console.log(`[推荐] 距离上次清空已${hoursPassed.toFixed(1)}小时，超过设定值${autoClearHours}小时，清空推荐列表`)
+    await clearRecommendList()
   }
 }
 

@@ -277,11 +277,12 @@ const validateSource = (source?: string): LX.OnlineSource | null => {
 }
 
 /**
- * 搜索推荐歌曲
+ * 搜索推荐歌曲（带重试和降级机制）
  * @param song AI 推荐的歌曲信息
+ * @param retryCount 重试次数（默认 0）
  * @returns 搜索到的歌曲信息，未找到返回 null
  */
-export const searchRecommendSong = async(song: RecommendSong): Promise<LX.Music.MusicInfoOnline | null> => {
+export const searchRecommendSong = async(song: RecommendSong, retryCount = 0): Promise<LX.Music.MusicInfoOnline | null> => {
   const { name, singer, source: aiSource, album } = song
 
   if (!name) {
@@ -295,35 +296,51 @@ export const searchRecommendSong = async(song: RecommendSong): Promise<LX.Music.
   // 构建搜索关键词：歌曲名 + 歌手
   const searchText = singer ? `${name} ${singer}` : name
 
-  console.log(`[推荐] 搜索歌曲: ${searchText}${preferSource ? ` [优先平台: ${preferSource}]` : ' [聚合搜索]'}`)
-
   try {
-    // 如果 AI 指定了有效平台，优先在该平台搜索
+    // 如果 AI 指定了有效平台，优先在该平台搜索（带重试）
     if (preferSource) {
-      const results = await search(searchText, 1, preferSource)
-      if (results && results.length > 0) {
+      let preferSourceResults = await search(searchText, 1, preferSource)
+
+      // 如果第一次搜索无结果且还有重试次数，重试
+      if ((!preferSourceResults || preferSourceResults.length === 0) && retryCount < 2) {
+        console.log(`[推荐] 在 ${preferSource} 首次搜索无结果，准备重试`)
+        await new Promise(resolve => setTimeout(resolve, 300))
+        preferSourceResults = await search(searchText, 1, preferSource)
+        retryCount++
+      }
+
+      if (preferSourceResults && preferSourceResults.length > 0) {
         // 如果有歌手名，验证匹配度
         if (singer) {
-          const matched = results.find(r => matchSinger(r.singer, singer))
+          const matched = preferSourceResults.find(r => matchSinger(r.singer, singer))
           if (matched) {
             console.log(`[推荐] 在 ${preferSource} 找到匹配歌曲: ${matched.name} - ${matched.singer}`)
             return matched
           }
           // 没有精确匹配，返回第一个结果
-          console.log(`[推荐] 在 ${preferSource} 未精确匹配歌手，使用第一个结果: ${results[0].name} - ${results[0].singer}`)
-          return results[0]
+          console.log(`[推荐] 在 ${preferSource} 未精确匹配歌手，使用第一个结果: ${preferSourceResults[0].name} - ${preferSourceResults[0].singer}`)
+          return preferSourceResults[0]
         }
-        console.log(`[推荐] 在 ${preferSource} 找到歌曲: ${results[0].name} - ${results[0].singer}`)
-        return results[0]
+        console.log(`[推荐] 在 ${preferSource} 找到歌曲: ${preferSourceResults[0].name} - ${preferSourceResults[0].singer}`)
+        return preferSourceResults[0]
       }
-      console.log(`[推荐] 在 ${preferSource} 未找到歌曲，尝试聚合搜索`)
+      // 指定平台无结果，降级到聚合搜索
+      console.log(`[推荐] 在 ${preferSource} 未找到歌曲，降级到聚合搜索`)
     }
 
-    // 聚合搜索
-    const results = await search(searchText, 20, 'all')
+    // 聚合搜索（带重试）
+    let results = await search(searchText, 20, 'all')
+
+    // 如果第一次聚合搜索无结果且还有重试次数，重试
+    if ((!results || results.length === 0) && retryCount < 2) {
+      console.log(`[推荐] 聚合搜索首次无结果，准备重试`)
+      await new Promise(resolve => setTimeout(resolve, 300))
+      results = await search(searchText, 20, 'all')
+      retryCount++
+    }
 
     if (!results || results.length === 0) {
-      console.log(`[推荐] 聚合搜索无结果: ${searchText}`)
+      console.log(`[推荐] 聚合搜索重试后仍无结果: ${searchText}`)
       return null
     }
 
@@ -353,6 +370,12 @@ export const searchRecommendSong = async(song: RecommendSong): Promise<LX.Music.
     return results[0]
   } catch (error) {
     console.log('[推荐] 搜索歌曲失败:', searchText, error)
+    // 异常情况下，如果还有重试次数，重试
+    if (retryCount < 2) {
+      console.log(`[推荐] 搜索异常，准备重试`)
+      await new Promise(resolve => setTimeout(resolve, 300))
+      return searchRecommendSong(song, retryCount + 1)
+    }
     return null
   }
 }
