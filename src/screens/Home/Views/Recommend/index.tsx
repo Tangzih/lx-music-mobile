@@ -46,6 +46,7 @@ export default memo(() => {
   const [filteredList, setFilteredList] = useState<LX.Music.MusicInfo[]>([])
   const [isSearchMode, setIsSearchMode] = useState(false)
   const prevErrorRef = useRef<string | null>(null)
+  const prevListLengthRef = useRef<number>(0) // 追踪上一次列表长度
 
   // 搜索功能
   const handleSearch = useCallback((keyword: string) => {
@@ -109,8 +110,20 @@ export default memo(() => {
       // 如果列表为空，不处理
       if (listLength === 0) return
 
+      // 如果播放索引无效，不处理（防止首次加载时误触发）
+      // 注意：playIndex 从 0 开始，必须在有效范围内
+      if (currentIndex < 0 || currentIndex >= listLength) return
+
+      // 如果列表长度发生变化（新增了歌曲），更新追踪值但不触发推荐
+      if (listLength !== prevListLengthRef.current) {
+        prevListLengthRef.current = listLength
+        return
+      }
+
       // 当播放到倒数第二首时开始获取新推荐
-      if (currentIndex >= listLength - 2 && currentIndex >= 0) {
+      // 只有当索引确实接近末尾时才触发
+      if (currentIndex >= listLength - 2) {
+        console.log('[持续推荐] 触发追加推荐，当前索引:', currentIndex, '列表长度:', listLength)
         await recommendActions.appendRecommendations()
       }
     }
