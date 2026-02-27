@@ -4,7 +4,7 @@
 
 import { callRecommendAPI, type RecommendSong } from './api'
 import settingState from '@/store/setting/state'
-import listState from '@/store/list/state'
+import { allMusicList } from '@/utils/listManage'
 import recommendState from '@/store/recommend/state'
 import { getListMusics } from '@/utils/listManage'
 import { search } from '@/core/search/music'
@@ -15,23 +15,45 @@ import musicSdk from '@/utils/musicSdk'
 const VALID_SOURCES: LX.OnlineSource[] = ['kw', 'kg', 'tx', 'wy', 'mg']
 
 /**
+ * 估算文本的token数量（简化算法：中文约1.5字符/token，英文约4字符/token）
+ * @param text 要估算的文本
+ * @returns 估算的token数量
+ */
+const estimateTokens = (text: string): number => {
+  if (!text) return 0
+  // 统计中文字符数
+  const chineseChars = (text.match(/[\u4e00-\u9fa5]/g) || []).length
+  // 非中文字符数
+  const nonChineseChars = text.length - chineseChars
+  // 中文约1.5字符/token，英文约4字符/token
+  return Math.ceil(chineseChars / 1.5 + nonChineseChars / 4)
+}
+
+/**
  * 获取用户歌单中的歌曲（简单模式：仅歌曲名和歌手信息）
  * @param analyzeCount 单次分析歌曲数量
  * @returns 歌曲信息字符串数组
  */
 export const getUserMusicList = async(analyzeCount: number): Promise<string[]> => {
-  const allMusicList = listState.allMusicList
   const musicStrings: string[] = []
 
-  // 遍历所有列表收集歌曲
-  for (const [listId, musics] of allMusicList.entries()) {
-    // 跳过临时列表和试听列表
-    if (listId === 'temp' || listId === 'default') continue
+  console.log('[推荐] allMusicList size:', allMusicList.size)
 
-    for (const music of musics) {
-      musicStrings.push(`${music.name} - ${music.singer}`)
+  // 遍历所有列表收集歌曲
+  allMusicList.forEach((musics, listId) => {
+    // 跳过临时列表、试听列表和收藏列表
+    if (listId === 'temp' || listId === 'default' || listId === 'love') return
+
+    console.log('[推荐] listId:', listId, 'musics count:', musics?.length || 0)
+
+    if (musics && musics.length > 0) {
+      for (const music of musics) {
+        musicStrings.push(`${music.name} - ${music.singer}`)
+      }
     }
-  }
+  })
+
+  console.log('[推荐] 收集到的歌曲数:', musicStrings.length)
 
   // 如果歌曲数量超过 analyzeCount，随机抽取
   if (musicStrings.length > analyzeCount) {
@@ -47,17 +69,16 @@ export const getUserMusicList = async(analyzeCount: number): Promise<string[]> =
  * @returns 歌曲 ID 集合
  */
 export const getCurrentMusicIds = (): Set<string> => {
-  const allMusicList = listState.allMusicList
   const musicIds = new Set<string>()
 
-  for (const [listId, musics] of allMusicList.entries()) {
-    // 跳过临时列表和试听列表
-    if (listId === 'temp' || listId === 'default') continue
+  allMusicList.forEach((musics, listId) => {
+    // 跳过临时列表、试听列表和收藏列表
+    if (listId === 'temp' || listId === 'default' || listId === 'love') return
 
     for (const music of musics) {
       musicIds.add(music.id)
     }
-  }
+  })
 
   return musicIds
 }
@@ -80,12 +101,20 @@ export const getRecommendedMusicIds = (): Set<string> => {
  * @param recommendCount 推荐数量
  * @param extraPrompt 附加提示词
  * @param triedSongs 已尝试推荐的歌曲（用于补充推荐时排除）
- * @returns 提示词
+ * @param maxTokens 最大token限制
+ * @returns 提示词和token警告
  */
-export const buildPrompt = (musicList: string[], recommendCount: number, extraPrompt?: string, triedSongs?: Set<string>): string => {
+export const buildPrompt = (
+  musicList: string[],
+  recommendCount: number,
+  extraPrompt?: string,
+  triedSongs?: Set<string>,
+  maxTokens?: number
+): { prompt: string; tokenWarning?: string } => {
   let prompt: string
+  let tokenWarning: string | undefined
 
-  // 获取已推荐的歌曲
+  // 获取已推荐的歌曲（全部）
   const recommendedSongs = recommendState.recommendList
     .map(m => `${m.name} - ${m.singer}`)
 
@@ -103,7 +132,8 @@ ${musicList.map((song, index) => `${index + 1}. ${song}`).join('\n')}
     prompt += `
 
 注意：以下歌曲已经推荐过，请不要重复推荐：
-${recommendedSongs.slice(-50).map((song, index) => `${index + 1}. ${song}`).join('\n')}`
+已推荐歌曲：
+${recommendedSongs.map((song, index) => `${index + 1}. ${song}`).join('\n')}`
   }
 
   // 添加已尝试推荐的歌曲信息（补充推荐时）
@@ -123,7 +153,39 @@ ${triedList.map((song, index) => `${index + 1}. ${song}`).join('\n')}`
     prompt += `\n\n重要：必须推荐满${recommendCount}首歌曲。如果指定的歌手/风格歌曲不足，请推荐风格相似的其他歌曲。`
   }
 
-  return prompt
+  // Token限制检查和调整
+  if (maxTokens) {
+    const reservedForResponse = 500
+    const availableTokens = maxTokens - reservedForResponse
+    let currentTokens = estimateTokens(prompt)
+
+    // 如果超出token限制，减少已推荐歌曲数量
+    if (currentTokens > availableTokens && recommendedSongs.length > 0) {
+      // 计算需要保留的已推荐歌曲数量
+      const basePromptWithoutRecommended = prompt.split('注意：以下歌曲已经推荐过')[0]
+      const baseTokens = estimateTokens(basePromptWithoutRecommended)
+      const tokensForRecommended = availableTokens - baseTokens
+
+      // 每首歌曲约20-30 tokens
+      const maxRecommendedSongs = Math.floor(tokensForRecommended / 25)
+
+      if (maxRecommendedSongs < recommendedSongs.length && maxRecommendedSongs > 0) {
+        tokenWarning = `已推荐歌曲数量过多，仅保留最近${maxRecommendedSongs}首以避免超出token限制`
+
+        // 重新构建提示词
+        prompt = prompt.replace(
+          /已推荐歌曲：[\s\S]*?(?=\n\n注意：以下歌曲已经尝试过|$)/,
+          `已推荐歌曲：\n${recommendedSongs.slice(-maxRecommendedSongs).map((song, index) => `${index + 1}. ${song}`).join('\n')}`
+        )
+      } else if (maxRecommendedSongs <= 0) {
+        tokenWarning = '提示词过长，已省略已推荐歌曲列表'
+        // 移除已推荐歌曲部分
+        prompt = prompt.replace(/注意：以下歌曲已经推荐过[\s\S]*?(?=\n\n注意：以下歌曲已经尝试过|$)/, '')
+      }
+    }
+  }
+
+  return { prompt, tokenWarning }
 }
 
 /**
@@ -275,6 +337,7 @@ export const fetchRecommendations = async(
   const recommendCount = settingState.setting['recommend.recommendCount']
   const extraPrompt = settingState.setting['recommend.extraPrompt']
   const maxRetries = settingState.setting['recommend.maxRetries']
+  const maxTokens = settingState.setting['recommend.maxTokens']
 
   // 检查 API 配置
   if (!apiHost || !apiKey) {
@@ -288,6 +351,8 @@ export const fetchRecommendations = async(
     onProgress?.('分析歌单中...')
     const musicList = await getUserMusicList(analyzeCount)
 
+    console.log('[推荐] 分析歌曲数量:', musicList.length)
+
     // 2. 获取现有歌曲 ID 用于去重
     const existingIds = getCurrentMusicIds()
     const recommendedIds = getRecommendedMusicIds()
@@ -298,6 +363,7 @@ export const fetchRecommendations = async(
 
     // 3. 循环获取推荐直到达到目标数量
     let attempt = 0
+    let tokenWarningShown = false
 
     while (result.length < recommendCount && attempt < maxRetries) {
       attempt++
@@ -306,7 +372,13 @@ export const fetchRecommendations = async(
       const needCount = recommendCount - result.length
 
       // 构建提示词（包含已尝试的歌曲信息）
-      const prompt = buildPrompt(musicList, needCount, extraPrompt, triedSongs)
+      const { prompt, tokenWarning } = buildPrompt(musicList, needCount, extraPrompt, triedSongs, maxTokens)
+
+      // 显示token警告（只显示一次）
+      if (tokenWarning && !tokenWarningShown) {
+        console.log('[推荐] Token警告:', tokenWarning)
+        tokenWarningShown = true
+      }
 
       // 调用 AI API 获取推荐
       onProgress?.(`获取 AI 推荐中... (第${attempt}次，还需${needCount}首)`)

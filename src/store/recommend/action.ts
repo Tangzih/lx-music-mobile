@@ -50,17 +50,32 @@ const getRecommendations = async(): Promise<void> => {
       (status) => setProgress(status)
     )
 
-    // 2. 设置临时列表
+    // 2. 追加到现有列表
     if (recommendations.length > 0) {
-      await setTempList('recommend', recommendations)
-      setRecommendList(recommendations)
+      const currentList = recommendState.recommendList
+      const currentIds = new Set(currentList.map(m => m.id))
+
+      // 过滤掉已存在的歌曲
+      const newSongs = recommendations.filter(m => !currentIds.has(m.id))
+
+      if (newSongs.length > 0) {
+        const newList = [...currentList, ...newSongs]
+        await setTempList('recommend', newList)
+        setRecommendList(newList)
+      }
       setProgress('')
     } else {
-      setError('未找到推荐的歌曲')
+      // 如果已有推荐列表，不清空，只显示提示
+      if (recommendState.recommendList.length === 0) {
+        setError('未找到推荐的歌曲')
+      }
       setProgress('')
     }
   } catch (error: any) {
-    setError(error.message || '获取推荐失败')
+    // 如果已有列表，用toast显示错误（在父组件处理）
+    if (recommendState.recommendList.length === 0) {
+      setError(error.message || '获取推荐失败')
+    }
     setProgress('')
   } finally {
     setIsLoading(false)

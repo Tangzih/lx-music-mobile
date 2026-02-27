@@ -395,6 +395,11 @@ declare global {
        * 最大重试次数（推荐数量不足时自动重试）
        */
       'recommend.maxRetries': number
+
+      /**
+       * 最大Token数量限制
+       */
+      'recommend.maxTokens': number
     }
   }
 }

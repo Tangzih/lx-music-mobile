@@ -8,6 +8,7 @@ import AnalyzeCount from './AnalyzeCount'
 import RecommendCount from './RecommendCount'
 import ExtraPrompt from './ExtraPrompt'
 import MaxRetries from './MaxRetries'
+import MaxTokens from './MaxTokens'
 import ViewLog from './ViewLog'
 import ContinuousRecommend from './ContinuousRecommend'
 import EnableLog from './EnableLog'
@@ -26,6 +27,7 @@ export default memo(() => {
       <RecommendCount />
       <ExtraPrompt />
       <MaxRetries />
+      <MaxTokens />
       <ViewLog />
       <ContinuousRecommend />
       <EnableLog />

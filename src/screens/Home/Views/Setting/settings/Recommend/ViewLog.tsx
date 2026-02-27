@@ -1,5 +1,5 @@
 import { memo, useRef, useState, useEffect, useCallback } from 'react'
-import { View, ScrollView } from 'react-native'
+import { View } from 'react-native'
 import { useI18n } from '@/lang'
 import { createStyle, toast } from '@/utils/tools'
 import SubTitle from '../../components/SubTitle'
@@ -87,13 +87,13 @@ export default memo(() => {
         showConfirm={!!logText}
         reverseBtn={true}
       >
-        <ScrollView style={styles.logContainer} onStartShouldSetResponder={() => true}>
+        <View onStartShouldSetResponder={() => true}>
           {
             logText
               ? <Text selectable size={13}>{logText}</Text>
               : <Text size={13}>{t('recommend_log_empty')}</Text>
           }
-        </ScrollView>
+        </View>
       </ConfirmAlert>
     </>
   )
@@ -102,8 +102,5 @@ export default memo(() => {
 const styles = createStyle({
   btn: {
     flexDirection: 'row',
-  },
-  logContainer: {
-    maxHeight: 400,
   },
 })

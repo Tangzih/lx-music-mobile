@@ -88,6 +88,7 @@ const defaultSetting: LX.AppSetting = {
   'recommend.continuousRecommend': false,
   'recommend.extraPrompt': '',
   'recommend.maxRetries': 5,
+  'recommend.maxTokens': 4000,
 }
 
 

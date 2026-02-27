@@ -321,6 +321,7 @@
   "recommend_extra_prompt": "附加提示詞",
   "recommend_extra_prompt_placeholder": "輸入額外的要求，如：推薦華語流行歌曲",
   "recommend_max_retries": "最大重試次數",
+  "recommend_max_tokens": "最大Token限制",
   "recommend_ai_log": "AI 日誌",
   "recommend_log_detail": "日誌詳情",
   "recommend_log_time": "時間",
