@@ -45,6 +45,7 @@ export default memo(() => {
   const searchBarRef = useRef<RecommendSearchBarType>(null)
   const [filteredList, setFilteredList] = useState<LX.Music.MusicInfo[]>([])
   const [isSearchMode, setIsSearchMode] = useState(false)
+  const prevErrorRef = useRef<string | null>(null)
 
   // 搜索功能
   const handleSearch = useCallback((keyword: string) => {
