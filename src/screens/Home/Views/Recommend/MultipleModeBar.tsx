@@ -137,14 +137,14 @@ export default forwardRef<MultipleModeBarType, MultipleModeBarProps>(({ onSelect
 
 const styles = createStyle({
   container: {
+    flex: 1,
     position: 'absolute',
     left: 0,
     top: 0,
     width: '100%',
-    height: 48,
+    height: '100%',
     flexDirection: 'row',
     borderBottomWidth: BorderWidths.normal,
-    zIndex: 10,
   },
   switchBtn: {
     flexDirection: 'row',

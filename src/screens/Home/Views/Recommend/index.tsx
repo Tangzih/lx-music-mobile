@@ -219,26 +219,33 @@ export default memo(() => {
 
   return (
     <View style={styles.container}>
-      <View style={styles.header}>
-        <Text style={styles.title} size={16} color={theme['c-font']}>
-          {isLoading && recommendList.length > 0 ? (progress || t('recommend_loading')) : t('nav_recommend')}
-        </Text>
-        <View style={styles.headerButtons}>
-          <Button onPress={handleShowSearch}>
-            <Text size={14} color={theme['c-primary']}>{t('search')}</Text>
-          </Button>
-          <View style={styles.buttonSpacing} />
-          <Button onPress={handleGetRecommendations} disabled={isLoading}>
-            <Text size={14} color={theme['c-primary']}>{t('recommend_get')}</Text>
-          </Button>
+      <View style={{ zIndex: 2 }}>
+        <View style={styles.header}>
+          <Text style={styles.title} size={16} color={theme['c-font']}>
+            {isLoading && recommendList.length > 0 ? (progress || t('recommend_loading')) : t('nav_recommend')}
+          </Text>
+          <View style={styles.headerButtons}>
+            <Button onPress={handleShowSearch}>
+              <Text size={14} color={theme['c-primary']}>{t('search')}</Text>
+            </Button>
+            <View style={styles.buttonSpacing} />
+            <Button onPress={handleGetRecommendations} disabled={isLoading}>
+              <Text size={14} color={theme['c-primary']}>{t('recommend_get')}</Text>
+            </Button>
+          </View>
         </View>
+        <MultipleModeBar
+          ref={multipleModeBarRef}
+          onSwitchMode={handleSwitchSelectMode}
+          onSelectAll={isAll => listRef.current?.selectAll(isAll)}
+          onExitSelectMode={handleExitSelect}
+        />
+        <SearchBar
+          ref={searchBarRef}
+          onSearch={handleSearch}
+          onExitSearch={handleExitSearch}
+        />
       </View>
-
-      <SearchBar
-        ref={searchBarRef}
-        onSearch={handleSearch}
-        onExitSearch={handleExitSearch}
-      />
 
       {isLoading && recommendList.length === 0 ? (
         <View style={styles.loadingContainer}>
@@ -257,21 +264,13 @@ export default memo(() => {
           </Text>
         </View>
       ) : (
-        <>
-          <List
-            ref={listRef}
-            musicList={isSearchMode ? filteredList : recommendList}
-            onShowMenu={showMenu}
-            onMuiltSelectMode={handleMultiSelect}
-            onSelectAll={isAll => listRef.current?.selectAll(isAll)}
-          />
-          <MultipleModeBar
-            ref={multipleModeBarRef}
-            onSwitchMode={handleSwitchSelectMode}
-            onSelectAll={isAll => listRef.current?.selectAll(isAll)}
-            onExitSelectMode={handleExitSelect}
-          />
-        </>
+        <List
+          ref={listRef}
+          musicList={isSearchMode ? filteredList : recommendList}
+          onShowMenu={showMenu}
+          onMuiltSelectMode={handleMultiSelect}
+          onSelectAll={isAll => listRef.current?.selectAll(isAll)}
+        />
       )}
 
       <ListMenu

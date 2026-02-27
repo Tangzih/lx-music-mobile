@@ -144,11 +144,10 @@ const styles = createStyle({
     left: 0,
     top: 0,
     width: '100%',
-    height: 48,
+    height: '100%',
     flexDirection: 'row',
     paddingLeft: 10,
     borderBottomWidth: BorderWidths.normal,
-    zIndex: 10,
   },
   content: {
     flexDirection: 'row',
