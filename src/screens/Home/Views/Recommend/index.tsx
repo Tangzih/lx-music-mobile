@@ -24,6 +24,7 @@ import { usePlayInfo, usePlayMusicInfo } from '@/store/player/hook'
 import musicSdk from '@/utils/musicSdk'
 import { toOldMusicInfo } from '@/utils'
 import recommendState from '@/store/recommend/state'
+import { addListMusics } from '@/core/list'
 
 export default memo(() => {
   const t = useI18n()
@@ -40,6 +41,15 @@ export default memo(() => {
   const isMultiSelectModeRef = useRef(false)
   const playMusicInfo = usePlayMusicInfo()
   const playInfo = usePlayInfo()
+  const prevErrorRef = useRef<string | null>(null)
+
+  // 当列表有歌曲时，错误使用 Toast 提示
+  useEffect(() => {
+    if (error && error !== prevErrorRef.current && recommendList.length > 0) {
+      prevErrorRef.current = error
+      toast(`${t('recommend_error')}: ${error}`)
+    }
+  }, [error, recommendList.length, t])
 
   // 持续推荐：监听播放状态变化
   useEffect(() => {
@@ -102,6 +112,8 @@ export default memo(() => {
 
   // 播放
   const handlePlay = useCallback((info: SelectInfo) => {
+    // 将歌曲加入试听列表
+    void addListMusics('default', [info.musicInfo], 'bottom')
     void playList('temp', info.index)
   }, [])
 
@@ -171,18 +183,18 @@ export default memo(() => {
     <View style={styles.container}>
       <View style={styles.header}>
         <Text style={styles.title} size={18} color={theme['c-font']}>
-          {t('nav_recommend')}
+          {isLoading && recommendList.length > 0 ? (progress || t('recommend_loading')) : t('nav_recommend')}
         </Text>
         <Button onPress={handleGetRecommendations} disabled={isLoading}>
           <Text size={14} color={theme['c-primary']}>{t('recommend_get')}</Text>
         </Button>
       </View>
 
-      {isLoading ? (
+      {isLoading && recommendList.length === 0 ? (
         <View style={styles.loadingContainer}>
           <Loading label={progress || t('recommend_loading')} />
         </View>
-      ) : error ? (
+      ) : error && recommendList.length === 0 ? (
         <View style={styles.errorContainer}>
           <Text color={theme['c-red']} size={14}>
             {t('recommend_error')}: {error}

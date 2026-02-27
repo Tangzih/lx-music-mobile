@@ -5,6 +5,7 @@
 import { callRecommendAPI, type RecommendSong } from './api'
 import settingState from '@/store/setting/state'
 import listState from '@/store/list/state'
+import recommendState from '@/store/recommend/state'
 import { getListMusics } from '@/utils/listManage'
 import { search } from '@/core/search/music'
 import { addAILog } from '@/store/recommend/logAction'
@@ -24,8 +25,8 @@ export const getUserMusicList = async(analyzeCount: number): Promise<string[]> =
 
   // 遍历所有列表收集歌曲
   for (const [listId, musics] of allMusicList.entries()) {
-    // 跳过临时列表
-    if (listId === 'temp') continue
+    // 跳过临时列表和试听列表
+    if (listId === 'temp' || listId === 'default') continue
 
     for (const music of musics) {
       musicStrings.push(`${music.name} - ${music.singer}`)
@@ -50,8 +51,8 @@ export const getCurrentMusicIds = (): Set<string> => {
   const musicIds = new Set<string>()
 
   for (const [listId, musics] of allMusicList.entries()) {
-    // 跳过临时列表
-    if (listId === 'temp') continue
+    // 跳过临时列表和试听列表
+    if (listId === 'temp' || listId === 'default') continue
 
     for (const music of musics) {
       musicIds.add(music.id)
@@ -62,14 +63,31 @@ export const getCurrentMusicIds = (): Set<string> => {
 }
 
 /**
+ * 获取推荐列表中已有的歌曲ID（用于追加推荐时去重）
+ * @returns 歌曲 ID 集合
+ */
+export const getRecommendedMusicIds = (): Set<string> => {
+  const ids = new Set<string>()
+  for (const music of recommendState.recommendList) {
+    ids.add(music.id)
+  }
+  return ids
+}
+
+/**
  * 构建 AI 提示词
  * @param musicList 歌曲列表
  * @param recommendCount 推荐数量
  * @param extraPrompt 附加提示词
+ * @param triedSongs 已尝试推荐的歌曲（用于补充推荐时排除）
  * @returns 提示词
  */
-export const buildPrompt = (musicList: string[], recommendCount: number, extraPrompt?: string): string => {
+export const buildPrompt = (musicList: string[], recommendCount: number, extraPrompt?: string, triedSongs?: Set<string>): string => {
   let prompt: string
+
+  // 获取已推荐的歌曲
+  const recommendedSongs = recommendState.recommendList
+    .map(m => `${m.name} - ${m.singer}`)
 
   if (musicList.length === 0) {
     prompt = '用户歌单为空，请随机推荐一些热门歌曲。'
@@ -80,9 +98,29 @@ ${musicList.map((song, index) => `${index + 1}. ${song}`).join('\n')}
 请分析这些歌曲，推测用户的音乐喜好，并推荐${recommendCount}首可能喜欢的新歌曲。`
   }
 
+  // 添加已推荐歌曲信息，避免重复
+  if (recommendedSongs.length > 0) {
+    prompt += `
+
+注意：以下歌曲已经推荐过，请不要重复推荐：
+${recommendedSongs.slice(-50).map((song, index) => `${index + 1}. ${song}`).join('\n')}`
+  }
+
+  // 添加已尝试推荐的歌曲信息（补充推荐时）
+  if (triedSongs && triedSongs.size > 0) {
+    const triedList = Array.from(triedSongs).slice(-100) // 最多100首
+    prompt += `
+
+注意：以下歌曲已经尝试过推荐但未找到或已存在，请推荐其他歌曲：
+${triedList.map((song, index) => `${index + 1}. ${song}`).join('\n')}`
+  }
+
   // 添加附加提示词
   if (extraPrompt && extraPrompt.trim()) {
     prompt += `\n\n附加要求：${extraPrompt.trim()}`
+
+    // 如果用户指定了特定要求，强调必须达到推荐数量
+    prompt += `\n\n重要：必须推荐满${recommendCount}首歌曲。如果指定的歌手/风格歌曲不足，请推荐风格相似的其他歌曲。`
   }
 
   return prompt
@@ -236,6 +274,7 @@ export const fetchRecommendations = async(
   const analyzeCount = settingState.setting['recommend.analyzeCount']
   const recommendCount = settingState.setting['recommend.recommendCount']
   const extraPrompt = settingState.setting['recommend.extraPrompt']
+  const maxRetries = settingState.setting['recommend.maxRetries']
 
   // 检查 API 配置
   if (!apiHost || !apiKey) {
@@ -249,52 +288,83 @@ export const fetchRecommendations = async(
     onProgress?.('分析歌单中...')
     const musicList = await getUserMusicList(analyzeCount)
 
-    // 2. 构建提示词
-    const prompt = buildPrompt(musicList, recommendCount, extraPrompt)
-
-    // 3. 调用 AI API 获取推荐
-    onProgress?.('获取 AI 推荐中...')
-    const { songs: recommendedSongs, response } = await callRecommendAPI(apiHost, apiKey, model, prompt, recommendCount)
-
-    // 4. 记录 AI 日志
-    addAILog({
-      model,
-      prompt,
-      response,
-      requestSongs: musicList,
-      recommendedSongs: recommendedSongs.map(s => `${s.name} - ${s.singer}${s.source ? ` [${s.source}]` : ''}`),
-    })
-
-    // 5. 获取现有歌曲 ID 用于去重
+    // 2. 获取现有歌曲 ID 用于去重
     const existingIds = getCurrentMusicIds()
-    const searchedSongs = new Set<string>()
+    const recommendedIds = getRecommendedMusicIds()
+    const allExistingIds = new Set([...existingIds, ...recommendedIds])
+    const searchedSongs = new Set<string>() // 已搜索过的歌曲（避免重复搜索）
+    const triedSongs = new Set<string>() // 已尝试推荐的歌曲（用于补充推荐时排除）
     const result: LX.Music.MusicInfoOnline[] = []
 
-    // 6. 搜索推荐歌曲
-    onProgress?.('搜索推荐歌曲中...')
-    for (const song of recommendedSongs) {
-      // 去重检查
-      const songKey = `${song.name} - ${song.singer}`.toLowerCase()
-      if (searchedSongs.has(songKey)) {
-        continue
+    // 3. 循环获取推荐直到达到目标数量
+    let attempt = 0
+
+    while (result.length < recommendCount && attempt < maxRetries) {
+      attempt++
+
+      // 计算还需要多少首
+      const needCount = recommendCount - result.length
+
+      // 构建提示词（包含已尝试的歌曲信息）
+      const prompt = buildPrompt(musicList, needCount, extraPrompt, triedSongs)
+
+      // 调用 AI API 获取推荐
+      onProgress?.(`获取 AI 推荐中... (第${attempt}次，还需${needCount}首)`)
+      const { songs: recommendedSongs, response } = await callRecommendAPI(apiHost, apiKey, model, prompt, needCount)
+
+      // 记录 AI 日志（只在第一次记录完整日志）
+      if (attempt === 1) {
+        addAILog({
+          model,
+          prompt,
+          response,
+          requestSongs: musicList,
+          recommendedSongs: recommendedSongs.map(s => `${s.name} - ${s.singer}${s.source ? ` [${s.source}]` : ''}`),
+        })
       }
 
-      // 搜索歌曲
-      const musicInfo = await searchRecommendSong(song)
+      // 搜索推荐歌曲
+      onProgress?.('搜索推荐歌曲中...')
+      let foundInThisRound = 0
 
-      if (musicInfo) {
-        // 检查是否已在用户歌单中
-        if (!existingIds.has(musicInfo.id)) {
-          result.push(musicInfo)
-          searchedSongs.add(songKey)
+      for (const song of recommendedSongs) {
+        const songKey = `${song.name} - ${song.singer}`.toLowerCase()
 
-          // 达到推荐数量后停止
-          if (result.length >= recommendCount) {
-            break
-          }
-        } else {
-          console.log(`[推荐] 歌曲已存在于歌单中: ${song.name} - ${song.singer}`)
+        // 记录已尝试的歌曲
+        triedSongs.add(songKey)
+
+        // 去重检查
+        if (searchedSongs.has(songKey)) {
+          continue
         }
+
+        // 搜索歌曲
+        const musicInfo = await searchRecommendSong(song)
+
+        if (musicInfo) {
+          // 检查是否已在用户歌单或推荐列表中
+          if (!allExistingIds.has(musicInfo.id)) {
+            result.push(musicInfo)
+            searchedSongs.add(songKey)
+            allExistingIds.add(musicInfo.id) // 添加到已存在集合，防止后续重复
+            foundInThisRound++
+
+            // 达到推荐数量后停止
+            if (result.length >= recommendCount) {
+              break
+            }
+          } else {
+            console.log(`[推荐] 歌曲已存在于歌单或推荐列表中: ${song.name} - ${song.singer}`)
+          }
+        }
+      }
+
+      console.log(`[推荐] 第${attempt}次尝试找到 ${foundInThisRound} 首新歌曲，当前共 ${result.length} 首`)
+
+      // 如果这轮没找到任何新歌曲，说明AI可能已经无法提供更多了
+      if (foundInThisRound === 0) {
+        console.log('[推荐] 本轮未找到新歌曲，停止尝试')
+        break
       }
     }
 

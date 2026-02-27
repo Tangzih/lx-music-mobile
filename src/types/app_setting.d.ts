@@ -390,6 +390,11 @@ declare global {
        * 附加提示词
        */
       'recommend.extraPrompt': string
+
+      /**
+       * 最大重试次数（推荐数量不足时自动重试）
+       */
+      'recommend.maxRetries': number
     }
   }
 }

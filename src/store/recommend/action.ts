@@ -84,11 +84,16 @@ const appendRecommendations = async(): Promise<void> => {
     // 2. 追加到临时列表
     if (recommendations.length > 0) {
       const currentList = recommendState.recommendList
-      const newList = [...currentList, ...recommendations]
+      const currentIds = new Set(currentList.map(m => m.id))
 
-      // 更新临时列表
-      await addListMusics('temp', recommendations, 'bottom')
-      setRecommendList(newList)
+      // 过滤掉已存在的歌曲
+      const newSongs = recommendations.filter(m => !currentIds.has(m.id))
+
+      if (newSongs.length > 0) {
+        const newList = [...currentList, ...newSongs]
+        await addListMusics('temp', newSongs, 'bottom')
+        setRecommendList(newList)
+      }
       setProgress('')
     } else {
       setError('未找到推荐的歌曲')

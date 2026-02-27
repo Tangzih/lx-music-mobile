@@ -87,6 +87,7 @@ const defaultSetting: LX.AppSetting = {
   'recommend.enableLog': false,
   'recommend.continuousRecommend': false,
   'recommend.extraPrompt': '',
+  'recommend.maxRetries': 5,
 }
 
 
