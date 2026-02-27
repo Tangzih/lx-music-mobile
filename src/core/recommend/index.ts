@@ -421,16 +421,15 @@ export const fetchRecommendations = async(
       onProgress?.(`获取 AI 推荐中... (第${attempt}次，还需${needCount}首)`)
       const { songs: recommendedSongs, response } = await callRecommendAPI(apiHost, apiKey, model, prompt, needCount)
 
-      // 记录 AI 日志（只在第一次记录完整日志）
-      if (attempt === 1) {
-        addAILog({
-          model,
-          prompt,
-          response,
-          requestSongs: musicList,
-          recommendedSongs: recommendedSongs.map(s => `${s.name} - ${s.singer}${s.source ? ` [${s.source}]` : ''}`),
-        })
-      }
+      // 记录 AI 日志（每次重试都记录）
+      addAILog({
+        model,
+        prompt,
+        response,
+        requestSongs: musicList,
+        recommendedSongs: recommendedSongs.map(s => `${s.name} - ${s.singer}${s.source ? ` [${s.source}]` : ''}`),
+        attempt, // 记录当前是第几次尝试
+      })
 
       // 搜索推荐歌曲
       onProgress?.('搜索推荐歌曲中...')

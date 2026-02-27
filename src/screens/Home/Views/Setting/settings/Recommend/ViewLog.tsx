@@ -26,7 +26,7 @@ const formatLogs = (logs: LX.Recommend.AILogEntry[]): string => {
 
   return logs.map((log, index) => {
     const lines = [
-      `【${index + 1}】${formatTime(log.timestamp)}`,
+      `【${index + 1}】${formatTime(log.timestamp)}${log.attempt ? ` (第${log.attempt}次尝试)` : ''}`,
       `模型: ${log.model}`,
       `分析歌曲: ${log.requestSongs.slice(0, 5).join(', ')}${log.requestSongs.length > 5 ? '...' : ''}`,
       `推荐歌曲: ${log.recommendedSongs.join(', ')}`,
