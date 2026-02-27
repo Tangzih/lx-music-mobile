@@ -3,6 +3,11 @@ import { setTempList, addListMusics } from '@/core/list'
 import { fetchRecommendations } from '@/core/recommend'
 import settingState from '@/store/setting/state'
 import playerState from '@/store/player/state'
+import { saveData, getData, removeData } from '@/plugins/storage'
+
+// 存储key
+const STORAGE_KEY_RECOMMEND_LIST = 'recommend_list'
+const STORAGE_KEY_LAST_CLEAR_TIME = 'recommend_last_clear_time'
 
 /**
  * 设置推荐歌曲列表
@@ -10,6 +15,91 @@ import playerState from '@/store/player/state'
 const setRecommendList = (list: LX.Music.MusicInfoOnline[]) => {
   recommendState.recommendList = list
   global.state_event.recommendListUpdated(list)
+}
+
+/**
+ * 保存推荐列表到本地存储
+ */
+const saveRecommendListToStorage = async(list: LX.Music.MusicInfoOnline[]) => {
+  try {
+    await saveData(STORAGE_KEY_RECOMMEND_LIST, list)
+  } catch (e) {
+    console.error('[推荐] 保存推荐列表失败:', e)
+  }
+}
+
+/**
+ * 从本地存储加载推荐列表
+ */
+const loadRecommendListFromStorage = async(): Promise<LX.Music.MusicInfoOnline[]> => {
+  try {
+    const list = await getData<LX.Music.MusicInfoOnline[]>(STORAGE_KEY_RECOMMEND_LIST)
+    return list || []
+  } catch (e) {
+    console.error('[推荐] 加载推荐列表失败:', e)
+    return []
+  }
+}
+
+/**
+ * 保存上次清空时间到本地存储
+ */
+const saveLastClearTimeToStorage = async(time: number) => {
+  try {
+    await saveData(STORAGE_KEY_LAST_CLEAR_TIME, time)
+  } catch (e) {
+    console.error('[推荐] 保存清空时间失败:', e)
+  }
+}
+
+/**
+ * 从本地存储加载上次清空时间
+ */
+const loadLastClearTimeFromStorage = async(): Promise<number> => {
+  try {
+    const time = await getData<number>(STORAGE_KEY_LAST_CLEAR_TIME)
+    return time || 0
+  } catch (e) {
+    console.error('[推荐] 加载清空时间失败:', e)
+    return 0
+  }
+}
+
+/**
+ * 初始化推荐列表（应用启动时调用）
+ */
+const initRecommendList = async() => {
+  // 加载推荐列表
+  const list = await loadRecommendListFromStorage()
+  setRecommendList(list)
+
+  // 加载上次清空时间
+  const lastClearTime = await loadLastClearTimeFromStorage()
+  recommendState.lastClearTime = lastClearTime
+
+  // 检查是否需要自动清空
+  checkAutoClear()
+}
+
+/**
+ * 检查是否需要自动清空
+ */
+const checkAutoClear = () => {
+  const autoClear = settingState.setting['recommend.autoClear']
+  const autoClearHours = settingState.setting['recommend.autoClearHours']
+
+  // 如果未启用自动清空或时间为0，不处理
+  if (!autoClear || autoClearHours <= 0) return
+
+  const now = Date.now()
+  const lastClearTime = recommendState.lastClearTime || now
+  const hoursPassed = (now - lastClearTime) / (1000 * 60 * 60)
+
+  // 如果超过设定时间，清空列表
+  if (hoursPassed >= autoClearHours) {
+    console.log('[推荐] 达到自动清空时间，清空推荐列表')
+    clearRecommendList()
+  }
 }
 
 /**
@@ -62,6 +152,8 @@ const getRecommendations = async(): Promise<void> => {
         const newList = [...currentList, ...newSongs]
         await setTempList('recommend', newList)
         setRecommendList(newList)
+        // 保存到本地存储
+        await saveRecommendListToStorage(newList)
       }
       setProgress('')
     } else {
@@ -108,6 +200,8 @@ const appendRecommendations = async(): Promise<void> => {
         const newList = [...currentList, ...newSongs]
         await addListMusics('temp', newSongs, 'bottom')
         setRecommendList(newList)
+        // 保存到本地存储
+        await saveRecommendListToStorage(newList)
       }
       setProgress('')
     } else {
@@ -153,10 +247,26 @@ const checkContinuousRecommend = async() => {
 /**
  * 清空推荐列表
  */
-const clearRecommendList = () => {
+const clearRecommendList = async() => {
   setRecommendList([])
   setError(null)
   setProgress('')
+  // 清空本地存储
+  await removeData(STORAGE_KEY_RECOMMEND_LIST)
+  // 更新清空时间
+  const now = Date.now()
+  recommendState.lastClearTime = now
+  await saveLastClearTimeToStorage(now)
+}
+
+/**
+ * 从推荐列表移除歌曲
+ */
+const removeSongsFromList = async(ids: string[]) => {
+  const newList = recommendState.recommendList.filter(m => !ids.includes(m.id))
+  setRecommendList(newList)
+  // 更新本地存储
+  await saveRecommendListToStorage(newList)
 }
 
 export default {
@@ -168,4 +278,6 @@ export default {
   appendRecommendations,
   checkContinuousRecommend,
   clearRecommendList,
+  initRecommendList,
+  removeSongsFromList,
 }

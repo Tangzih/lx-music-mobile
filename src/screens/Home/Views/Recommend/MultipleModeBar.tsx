@@ -97,7 +97,7 @@ export default forwardRef<MultipleModeBarType, MultipleModeBarProps>(({ onSelect
 
   const animaStyle = useMemo(() => ({
     ...styles.container,
-    // backgroundColor: theme['c-content-background'],
+    backgroundColor: theme['c-content-background'],
     borderBottomColor: theme['c-border-background'],
     opacity: visibleBar ? animFade : 0, // Bind opacity to animated value
     transform: [

@@ -400,6 +400,16 @@ declare global {
        * 最大Token数量限制
        */
       'recommend.maxTokens': number
+
+      /**
+       * 是否启用定期清空推荐列表
+       */
+      'recommend.autoClear': boolean
+
+      /**
+       * 定期清空推荐列表的时间间隔（小时），0表示禁用
+       */
+      'recommend.autoClearHours': number
     }
   }
 }

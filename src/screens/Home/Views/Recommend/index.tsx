@@ -180,9 +180,8 @@ export default memo(() => {
       ? info.selectedList.map(s => s.id)
       : [info.musicInfo.id]
 
-    // 从推荐列表中移除
-    const newList = recommendState.recommendList.filter(m => !removeIds.includes(m.id))
-    recommendActions.setRecommendList(newList)
+    // 从推荐列表中移除并更新存储
+    void recommendActions.removeSongsFromList(removeIds)
 
     handleExitSelect()
   }, [handleExitSelect])

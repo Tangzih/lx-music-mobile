@@ -322,6 +322,8 @@
   "recommend_extra_prompt_placeholder": "Enter additional requirements, e.g., recommend Chinese pop songs",
   "recommend_max_retries": "Max Retries",
   "recommend_max_tokens": "Max Tokens Limit",
+  "recommend_auto_clear": "Auto Clear Recommend List",
+  "recommend_auto_clear_hours": "Clear Interval (Hours)",
   "recommend_ai_log": "AI Log",
   "recommend_log_detail": "Log Detail",
   "recommend_log_time": "Time",

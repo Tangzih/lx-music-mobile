@@ -4,12 +4,13 @@
 
 import { callRecommendAPI, type RecommendSong } from './api'
 import settingState from '@/store/setting/state'
-import { allMusicList } from '@/utils/listManage'
+import { allMusicList, userLists, getListMusics } from '@/utils/listManage'
 import recommendState from '@/store/recommend/state'
-import { getListMusics } from '@/utils/listManage'
 import { search } from '@/core/search/music'
 import { addAILog } from '@/store/recommend/logAction'
 import musicSdk from '@/utils/musicSdk'
+import listState from '@/store/list/state'
+import { LIST_IDS } from '@/config/constant'
 
 // 支持的音源平台
 const VALID_SOURCES: LX.OnlineSource[] = ['kw', 'kg', 'tx', 'wy', 'mg']
@@ -30,11 +31,47 @@ const estimateTokens = (text: string): number => {
 }
 
 /**
+ * 预加载所有歌单数据
+ * 确保网络歌单等延迟加载的列表在分析前已加载
+ */
+const preloadAllListData = async() => {
+  console.log('[推荐] 开始预加载歌单数据...')
+
+  // 获取所有需要加载的歌单ID
+  const listIds: string[] = []
+
+  // 添加收藏列表
+  listIds.push(LIST_IDS.LOVE)
+
+  // 添加所有用户自定义歌单
+  for (const list of userLists) {
+    listIds.push(list.id)
+  }
+
+  // 同时从 listState.allList 获取（确保不遗漏）
+  for (const list of listState.allList) {
+    if (!listIds.includes(list.id)) {
+      listIds.push(list.id)
+    }
+  }
+
+  console.log('[推荐] 需要预加载的歌单数量:', listIds.length)
+
+  // 并行加载所有歌单
+  await Promise.all(listIds.map(listId => getListMusics(listId)))
+
+  console.log('[推荐] 歌单数据预加载完成, allMusicList size:', allMusicList.size)
+}
+
+/**
  * 获取用户歌单中的歌曲（简单模式：仅歌曲名和歌手信息）
  * @param analyzeCount 单次分析歌曲数量
  * @returns 歌曲信息字符串数组
  */
 export const getUserMusicList = async(analyzeCount: number): Promise<string[]> => {
+  // 先预加载所有歌单数据
+  await preloadAllListData()
+
   const musicStrings: string[] = []
 
   console.log('[推荐] allMusicList size:', allMusicList.size)

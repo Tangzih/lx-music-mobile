@@ -18,6 +18,11 @@ export interface InitState {
    * 当前进度状态
    */
   progress: string
+
+  /**
+   * 上次清空推荐列表的时间戳
+   */
+  lastClearTime: number
 }
 
 const state: InitState = {
@@ -25,6 +30,7 @@ const state: InitState = {
   isLoading: false,
   error: null,
   progress: '',
+  lastClearTime: 0,
 }
 
 export default state

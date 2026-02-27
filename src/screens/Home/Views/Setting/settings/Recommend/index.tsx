@@ -9,6 +9,8 @@ import RecommendCount from './RecommendCount'
 import ExtraPrompt from './ExtraPrompt'
 import MaxRetries from './MaxRetries'
 import MaxTokens from './MaxTokens'
+import AutoClearSwitch from './AutoClearSwitch'
+import AutoClearHours from './AutoClearHours'
 import ViewLog from './ViewLog'
 import ContinuousRecommend from './ContinuousRecommend'
 import EnableLog from './EnableLog'
@@ -28,6 +30,8 @@ export default memo(() => {
       <ExtraPrompt />
       <MaxRetries />
       <MaxTokens />
+      <AutoClearSwitch />
+      <AutoClearHours />
       <ViewLog />
       <ContinuousRecommend />
       <EnableLog />

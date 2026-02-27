@@ -14,6 +14,7 @@ import settingState from '@/store/setting/state'
 import { checkUpdate } from '@/core/version'
 import { bootLog } from '@/utils/bootLog'
 import { cheatTip } from '@/utils/tools'
+import recommendActions from '@/store/recommend/action'
 
 let isFirstPush = true
 const handlePushedHomeScreen = async() => {
@@ -59,6 +60,8 @@ export default async() => {
   bootLog('Data inited.')
   await initCommonState(setting)
   bootLog('Common State inited.')
+  await recommendActions.initRecommendList()
+  bootLog('Recommend list inited.')
 
   void initSync(setting)
   bootLog('Sync inited.')
