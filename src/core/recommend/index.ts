@@ -456,15 +456,11 @@ export const fetchRecommendations = async(
             searchedSongs.add(songKey)
             allExistingIds.add(musicInfo.id) // 添加到已存在集合，防止后续重复
             foundInThisRound++
-
-            // 达到推荐数量后停止
-            if (result.length >= recommendCount) {
-              break
-            }
           } else {
             console.log(`[推荐] 歌曲已存在于歌单或推荐列表中: ${song.name} - ${song.singer}`)
           }
         }
+        // 不再提前 break，处理完所有 AI 返回的歌曲
       }
 
       console.log(`[推荐] 第${attempt}次尝试找到 ${foundInThisRound} 首新歌曲，当前共 ${result.length} 首`)
