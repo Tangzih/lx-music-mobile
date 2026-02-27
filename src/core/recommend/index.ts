@@ -41,8 +41,8 @@ export const getUserMusicList = async(analyzeCount: number): Promise<string[]> =
 
   // 遍历所有列表收集歌曲
   allMusicList.forEach((musics, listId) => {
-    // 跳过临时列表、试听列表和收藏列表
-    if (listId === 'temp' || listId === 'default' || listId === 'love') return
+    // 跳过临时列表和试听列表，只保留自定义歌单和收藏列表
+    if (listId === 'temp' || listId === 'default') return
 
     console.log('[推荐] listId:', listId, 'musics count:', musics?.length || 0)
 
@@ -72,7 +72,7 @@ export const getCurrentMusicIds = (): Set<string> => {
   const musicIds = new Set<string>()
 
   allMusicList.forEach((musics, listId) => {
-    // 跳过临时列表、试听列表和收藏列表
+    // 跳过临时列表、试听列表和收藏列表，只保留自定义歌单
     if (listId === 'temp' || listId === 'default' || listId === 'love') return
 
     for (const music of musics) {

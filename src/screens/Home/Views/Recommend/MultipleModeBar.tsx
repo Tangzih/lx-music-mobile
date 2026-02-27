@@ -52,11 +52,10 @@ export default forwardRef<MultipleModeBarType, MultipleModeBarProps>(({ onSelect
   }))
 
   const handleShow = useCallback(() => {
-    // console.log('show List')
     setVisible(true)
     setAnimatPlayed(false)
     requestAnimationFrame(() => {
-      animTranslateY.setValue(20)
+      animTranslateY.setValue(-20)
 
       Animated.parallel([
         Animated.timing(animFade, {
@@ -84,7 +83,7 @@ export default forwardRef<MultipleModeBarType, MultipleModeBarProps>(({ onSelect
         useNativeDriver: true,
       }),
       Animated.timing(animTranslateY, {
-        toValue: 20,
+        toValue: -20,
         duration: 200,
         useNativeDriver: true,
       }),
@@ -140,11 +139,12 @@ const styles = createStyle({
   container: {
     position: 'absolute',
     left: 0,
-    bottom: 0,
+    top: 0,
     width: '100%',
     height: 48,
     flexDirection: 'row',
     borderBottomWidth: BorderWidths.normal,
+    zIndex: 10,
   },
   switchBtn: {
     flexDirection: 'row',

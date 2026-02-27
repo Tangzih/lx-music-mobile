@@ -1,4 +1,4 @@
-import { memo, useCallback, useRef, useEffect } from 'react'
+import { memo, useCallback, useRef, useEffect, useState } from 'react'
 import { View } from 'react-native'
 import { useI18n } from '@/lang'
 import { createStyle } from '@/utils/tools'
@@ -11,6 +11,7 @@ import List, { type ListType } from './List'
 import Loading from '@/components/common/Loading'
 import ListMenu, { type ListMenuType, type Position, type SelectInfo } from './ListMenu'
 import MultipleModeBar, { type SelectMode, type MultipleModeBarType } from './MultipleModeBar'
+import SearchBar, { type RecommendSearchBarType } from './SearchBar'
 import ListMusicAdd, { type MusicAddModalType as ListMusicAddType } from '@/components/MusicAddModal'
 import ListMusicMultiAdd, { type MusicMultiAddModalType as ListAddMultiType } from '@/components/MusicMultiAddModal'
 import { playList, playNext } from '@/core/player/player'
@@ -41,7 +42,44 @@ export default memo(() => {
   const isMultiSelectModeRef = useRef(false)
   const playMusicInfo = usePlayMusicInfo()
   const playInfo = usePlayInfo()
-  const prevErrorRef = useRef<string | null>(null)
+  const searchBarRef = useRef<RecommendSearchBarType>(null)
+  const [filteredList, setFilteredList] = useState<LX.Music.MusicInfo[]>([])
+  const [isSearchMode, setIsSearchMode] = useState(false)
+
+  // 搜索功能
+  const handleSearch = useCallback((keyword: string) => {
+    if (!keyword) {
+      setFilteredList(recommendList)
+      return
+    }
+    const lowerKeyword = keyword.toLowerCase()
+    const filtered = recommendList.filter(music =>
+      music.name.toLowerCase().includes(lowerKeyword) ||
+      music.singer.toLowerCase().includes(lowerKeyword)
+    )
+    setFilteredList(filtered)
+  }, [recommendList])
+
+  // 打开搜索
+  const handleShowSearch = useCallback(() => {
+    setIsSearchMode(true)
+    setFilteredList(recommendList)
+    searchBarRef.current?.show()
+  }, [recommendList])
+
+  // 退出搜索
+  const handleExitSearch = useCallback(() => {
+    setIsSearchMode(false)
+    setFilteredList([])
+    searchBarRef.current?.hide()
+  }, [])
+
+  // 当推荐列表变化时，更新过滤列表
+  useEffect(() => {
+    if (isSearchMode) {
+      setFilteredList(recommendList)
+    }
+  }, [recommendList, isSearchMode])
 
   // 当列表有歌曲时，错误使用 Toast 提示
   useEffect(() => {
@@ -182,13 +220,25 @@ export default memo(() => {
   return (
     <View style={styles.container}>
       <View style={styles.header}>
-        <Text style={styles.title} size={18} color={theme['c-font']}>
+        <Text style={styles.title} size={16} color={theme['c-font']}>
           {isLoading && recommendList.length > 0 ? (progress || t('recommend_loading')) : t('nav_recommend')}
         </Text>
-        <Button onPress={handleGetRecommendations} disabled={isLoading}>
-          <Text size={14} color={theme['c-primary']}>{t('recommend_get')}</Text>
-        </Button>
+        <View style={styles.headerButtons}>
+          <Button onPress={handleShowSearch}>
+            <Text size={14} color={theme['c-primary']}>{t('search')}</Text>
+          </Button>
+          <View style={styles.buttonSpacing} />
+          <Button onPress={handleGetRecommendations} disabled={isLoading}>
+            <Text size={14} color={theme['c-primary']}>{t('recommend_get')}</Text>
+          </Button>
+        </View>
       </View>
+
+      <SearchBar
+        ref={searchBarRef}
+        onSearch={handleSearch}
+        onExitSearch={handleExitSearch}
+      />
 
       {isLoading && recommendList.length === 0 ? (
         <View style={styles.loadingContainer}>
@@ -210,7 +260,7 @@ export default memo(() => {
         <>
           <List
             ref={listRef}
-            musicList={recommendList}
+            musicList={isSearchMode ? filteredList : recommendList}
             onShowMenu={showMenu}
             onMuiltSelectMode={handleMultiSelect}
             onSelectAll={isAll => listRef.current?.selectAll(isAll)}
@@ -252,6 +302,13 @@ const styles = createStyle({
     paddingLeft: 15,
     paddingRight: 15,
     paddingBottom: 10,
+  },
+  headerButtons: {
+    flexDirection: 'row',
+    alignItems: 'center',
+  },
+  buttonSpacing: {
+    width: 10,
   },
   title: {
     fontWeight: 'bold',

@@ -322,6 +322,7 @@
   "recommend_extra_prompt_placeholder": "输入额外的要求，如：推荐华语流行歌曲",
   "recommend_max_retries": "最大重试次数",
   "recommend_max_tokens": "最大Token限制",
+  "recommend_search_placeholder": "搜索歌曲或歌手",
   "recommend_ai_log": "AI 日志",
   "recommend_log_detail": "日志详情",
   "recommend_log_time": "时间",
