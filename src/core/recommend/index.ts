@@ -390,10 +390,8 @@ export const fetchRecommendations = async(
 
     console.log('[推荐] 分析歌曲数量:', musicList.length)
 
-    // 2. 获取现有歌曲 ID 用于去重
-    const existingIds = getCurrentMusicIds()
+    // 2. 获取推荐列表中已有的歌曲 ID 用于去重（只过滤推荐列表中的重复）
     const recommendedIds = getRecommendedMusicIds()
-    const allExistingIds = new Set([...existingIds, ...recommendedIds])
     const searchedSongs = new Set<string>() // 已搜索过的歌曲（避免重复搜索）
     const triedSongs = new Set<string>() // 已尝试推荐的歌曲（用于补充推荐时排除）
     const result: LX.Music.MusicInfoOnline[] = []
@@ -450,14 +448,14 @@ export const fetchRecommendations = async(
         const musicInfo = await searchRecommendSong(song)
 
         if (musicInfo) {
-          // 检查是否已在用户歌单或推荐列表中
-          if (!allExistingIds.has(musicInfo.id)) {
+          // 检查是否已在推荐列表中
+          if (!recommendedIds.has(musicInfo.id)) {
             result.push(musicInfo)
             searchedSongs.add(songKey)
-            allExistingIds.add(musicInfo.id) // 添加到已存在集合，防止后续重复
+            recommendedIds.add(musicInfo.id) // 添加到已存在集合，防止本次推荐重复
             foundInThisRound++
           } else {
-            console.log(`[推荐] 歌曲已存在于歌单或推荐列表中: ${song.name} - ${song.singer}`)
+            console.log(`[推荐] 歌曲已在推荐列表中: ${song.name} - ${song.singer}`)
           }
         }
         // 不再提前 break，处理完所有 AI 返回的歌曲
