@@ -8,6 +8,7 @@ import type { Position } from './ListMenu'
 import type { SelectMode } from './MultipleModeBar'
 import { useSettingValue } from '@/store/setting/hook'
 import { playList } from '@/core/player/player'
+import { LIST_IDS } from '@/config/constant'
 
 type FlatListType = FlatListProps<LX.Music.MusicInfo>
 
@@ -86,12 +87,12 @@ const List = forwardRef<ListType, ListProps>(({ musicList, onShowMenu, onMuiltSe
   const playInfo = usePlayInfo()
 
   const activeIndex = useMemo(() => {
-    // 推荐列表使用临时列表的播放状态
-    return playMusicInfo.listId == 'temp' ? playInfo.playIndex : -1
+    // 推荐列表使用自己的播放状态
+    return playMusicInfo.listId == LIST_IDS.RECOMMEND ? playInfo.playIndex : -1
   }, [playMusicInfo.listId, playInfo.playIndex])
 
   const handlePlay = useCallback((index: number) => {
-    void playList('temp', index)
+    void playList(LIST_IDS.RECOMMEND, index)
   }, [])
 
   const handleUpdateSelectedList = useCallback((newList: LX.List.ListMusics) => {

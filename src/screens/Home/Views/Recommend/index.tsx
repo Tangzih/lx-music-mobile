@@ -26,6 +26,7 @@ import musicSdk from '@/utils/musicSdk'
 import { toOldMusicInfo } from '@/utils'
 import recommendState from '@/store/recommend/state'
 import { addListMusics } from '@/core/list'
+import { LIST_IDS } from '@/config/constant'
 
 export default memo(() => {
   const t = useI18n()
@@ -137,8 +138,8 @@ export default memo(() => {
       // 检查是否启用持续推荐
       if (!settingState.setting['recommend.continuousRecommend']) return
 
-      // 检查是否正在播放推荐列表（临时列表）
-      if (playMusicInfo.listId !== 'temp') return
+      // 检查是否正在播放推荐列表
+      if (playMusicInfo.listId !== LIST_IDS.RECOMMEND) return
 
       // 检查是否正在加载
       if (recommendState.isLoading) return
@@ -198,7 +199,7 @@ export default memo(() => {
     listMenuRef.current?.show({
       musicInfo,
       index,
-      listId: 'temp',
+      listId: LIST_IDS.RECOMMEND,
       single: false,
       selectedList: listRef.current?.getSelectedList() ?? [],
     }, position)
@@ -208,25 +209,25 @@ export default memo(() => {
   const handlePlay = useCallback((info: SelectInfo) => {
     // 将歌曲加入试听列表
     void addListMusics('default', [info.musicInfo], 'bottom')
-    void playList('temp', info.index)
+    void playList(LIST_IDS.RECOMMEND, info.index)
   }, [])
 
   // 稍后播放
   const handlePlayLater = useCallback((info: SelectInfo) => {
     if (info.selectedList.length) {
-      addTempPlayList(info.selectedList.map(s => ({ listId: 'temp', musicInfo: s })))
+      addTempPlayList(info.selectedList.map(s => ({ listId: LIST_IDS.RECOMMEND, musicInfo: s })))
       handleExitSelect()
     } else {
-      addTempPlayList([{ listId: 'temp', musicInfo: info.musicInfo }])
+      addTempPlayList([{ listId: LIST_IDS.RECOMMEND, musicInfo: info.musicInfo }])
     }
   }, [handleExitSelect])
 
   // 添加到歌单
   const handleAddMusic = useCallback((info: SelectInfo) => {
     if (info.selectedList.length) {
-      listMusicMultiAddRef.current?.show({ selectedList: info.selectedList, listId: 'temp', isMove: false })
+      listMusicMultiAddRef.current?.show({ selectedList: info.selectedList, listId: LIST_IDS.RECOMMEND, isMove: false })
     } else {
-      listMusicAddRef.current?.show({ musicInfo: info.musicInfo, listId: 'temp', isMove: false })
+      listMusicAddRef.current?.show({ musicInfo: info.musicInfo, listId: LIST_IDS.RECOMMEND, isMove: false })
     }
   }, [])
 

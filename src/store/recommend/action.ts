@@ -1,9 +1,10 @@
 import recommendState from './state'
-import { setTempList, addListMusics } from '@/core/list'
 import { fetchRecommendations } from '@/core/recommend'
 import settingState from '@/store/setting/state'
 import playerState from '@/store/player/state'
 import { saveData, getData, removeData } from '@/plugins/storage'
+import { saveListMusics, getListMusics } from '@/utils/data'
+import { LIST_IDS } from '@/config/constant'
 
 // 存储key
 const STORAGE_KEY_RECOMMEND_LIST = 'recommend_list'
@@ -18,11 +19,14 @@ const setRecommendList = (list: LX.Music.MusicInfoOnline[]) => {
 }
 
 /**
- * 保存推荐列表到本地存储
+ * 保存推荐列表到本地存储（使用和"我的列表"相同的机制）
  */
 const saveRecommendListToStorage = async(list: LX.Music.MusicInfoOnline[]) => {
   try {
+    // 保存到专用存储（用于显示）
     await saveData(STORAGE_KEY_RECOMMEND_LIST, list)
+    // 同时保存到 allMusicList 存储系统（用于播放器读取）
+    await saveListMusics([{ id: LIST_IDS.RECOMMEND, musics: list }])
   } catch (e) {
     console.error('[推荐] 保存推荐列表失败:', e)
   }
@@ -33,8 +37,14 @@ const saveRecommendListToStorage = async(list: LX.Music.MusicInfoOnline[]) => {
  */
 const loadRecommendListFromStorage = async(): Promise<LX.Music.MusicInfoOnline[]> => {
   try {
-    const list = await getData<LX.Music.MusicInfoOnline[]>(STORAGE_KEY_RECOMMEND_LIST)
-    return list || []
+    // 优先从 allMusicList 存储系统加载（和"我的列表"一致）
+    const list = await getListMusics(LIST_IDS.RECOMMEND)
+    if (list && list.length > 0) {
+      return list as LX.Music.MusicInfoOnline[]
+    }
+    // 兼容旧数据：从专用存储加载
+    const legacyList = await getData<LX.Music.MusicInfoOnline[]>(STORAGE_KEY_RECOMMEND_LIST)
+    return legacyList || []
   } catch (e) {
     console.error('[推荐] 加载推荐列表失败:', e)
     return []
@@ -69,19 +79,13 @@ const loadLastClearTimeFromStorage = async(): Promise<number> => {
  * 初始化推荐列表（应用启动时调用）
  */
 const initRecommendList = async() => {
-  // 加载推荐列表
+  // 加载推荐列表（使用和"我的列表"相同的方式）
   const list = await loadRecommendListFromStorage()
   setRecommendList(list)
 
   // 加载上次清空时间
   const lastClearTime = await loadLastClearTimeFromStorage()
   recommendState.lastClearTime = lastClearTime
-
-  // 如果有推荐歌曲，同步到临时播放列表（确保播放器能找到歌曲）
-  if (list.length > 0) {
-    await setTempList('recommend', list)
-    console.log('[推荐] 已恢复临时播放列表，歌曲数量:', list.length)
-  }
 
   // 检查是否需要自动清空
   checkAutoClear()
@@ -99,7 +103,7 @@ const checkAutoClear = async() => {
   if (!autoClear || autoClearHours <= 0) return
 
   // 如果用户正在播放推荐列表的歌曲，不清空（避免打断播放）
-  if (playerState.playMusicInfo.listId === 'temp' && recommendState.recommendList.length > 0) {
+  if (playerState.playMusicInfo.listId === LIST_IDS.RECOMMEND && recommendState.recommendList.length > 0) {
     console.log('[推荐] 用户正在播放推荐列表，跳过自动清空')
     return
   }
@@ -163,9 +167,8 @@ const getRecommendations = async(): Promise<void> => {
 
       if (newSongs.length > 0) {
         const newList = [...currentList, ...newSongs]
-        await setTempList('recommend', newList)
         setRecommendList(newList)
-        // 保存到本地存储
+        // 保存到本地存储（使用和"我的列表"相同的机制）
         await saveRecommendListToStorage(newList)
       }
       setProgress('')
@@ -177,7 +180,7 @@ const getRecommendations = async(): Promise<void> => {
       setProgress('')
     }
   } catch (error: any) {
-    // 如果已有列表，用toast显示错误（在父组件处理）
+    // 如果已有列表，用 toast 显示错误（在父组件处理）
     if (recommendState.recommendList.length === 0) {
       setError(error.message || '获取推荐失败')
     }
@@ -201,7 +204,7 @@ const appendRecommendations = async(): Promise<void> => {
       (status) => setProgress(status)
     )
 
-    // 2. 追加到临时列表
+    // 2. 追加到推荐列表
     if (recommendations.length > 0) {
       const currentList = recommendState.recommendList
       const currentIds = new Set(currentList.map(m => m.id))
@@ -211,9 +214,8 @@ const appendRecommendations = async(): Promise<void> => {
 
       if (newSongs.length > 0) {
         const newList = [...currentList, ...newSongs]
-        await addListMusics('temp', newSongs, 'bottom')
         setRecommendList(newList)
-        // 保存到本地存储
+        // 保存到本地存储（使用和"我的列表"相同的机制）
         await saveRecommendListToStorage(newList)
       }
       setProgress('')
@@ -237,8 +239,8 @@ const checkContinuousRecommend = async() => {
   // 检查是否启用持续推荐
   if (!settingState.setting['recommend.continuousRecommend']) return
 
-  // 检查是否正在播放推荐列表（临时列表）
-  if (playerState.playMusicInfo.listId !== 'temp') return
+  // 检查是否正在播放推荐列表
+  if (playerState.playMusicInfo.listId !== LIST_IDS.RECOMMEND) return
 
   // 检查是否正在加载
   if (recommendState.isLoading) return
@@ -266,6 +268,8 @@ const clearRecommendList = async() => {
   setProgress('')
   // 清空本地存储
   await removeData(STORAGE_KEY_RECOMMEND_LIST)
+  // 同时清空 allMusicList 中的数据
+  await saveListMusics([{ id: LIST_IDS.RECOMMEND, musics: [] }])
   // 更新清空时间
   const now = Date.now()
   recommendState.lastClearTime = now
