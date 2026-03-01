@@ -77,6 +77,12 @@ const initRecommendList = async() => {
   const lastClearTime = await loadLastClearTimeFromStorage()
   recommendState.lastClearTime = lastClearTime
 
+  // 如果有推荐歌曲，同步到临时播放列表（确保播放器能找到歌曲）
+  if (list.length > 0) {
+    await setTempList('recommend', list)
+    console.log('[推荐] 已恢复临时播放列表，歌曲数量:', list.length)
+  }
+
   // 检查是否需要自动清空
   checkAutoClear()
 }
