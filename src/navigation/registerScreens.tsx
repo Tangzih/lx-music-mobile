@@ -7,6 +7,9 @@ import {
   PlayDetail,
   SonglistDetail,
   Comment,
+  RoomList,
+  RoomDetail,
+  CreateRoomModal,
   // Setting,
 } from '@/screens'
 import { Provider } from '@/store/Provider'
@@ -21,6 +24,11 @@ import {
   SYNC_MODE_MODAL,
   // SETTING_SCREEN,
 } from './screenNames'
+import {
+  ROOM_LIST_SCREEN,
+  ROOM_DETAIL_SCREEN,
+  CREATE_ROOM_MODAL,
+} from '@/screens/ListenTogether/RoomList/screenNames'
 import VersionModal from './components/VersionModal'
 import PactModal from './components/PactModal'
 import SyncModeModal from './components/SyncModeModal'
@@ -48,6 +56,11 @@ export default () => {
   Navigation.registerComponent(PACT_MODAL, () => WrappedComponent(PactModal))
   Navigation.registerComponent(SYNC_MODE_MODAL, () => WrappedComponent(SyncModeModal))
   // Navigation.registerComponent(SETTING_SCREEN, () => WrappedComponent(Setting))
+
+  // 一起听屏幕
+  Navigation.registerComponent(ROOM_LIST_SCREEN, () => WrappedComponent(RoomList))
+  Navigation.registerComponent(ROOM_DETAIL_SCREEN, () => WrappedComponent(RoomDetail))
+  Navigation.registerComponent(CREATE_ROOM_MODAL, () => WrappedComponent(CreateRoomModal))
 
   console.info('All screens have been registered...')
 }

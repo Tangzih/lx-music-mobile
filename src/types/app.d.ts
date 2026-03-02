@@ -3,6 +3,7 @@ import type { AppEventTypes } from '@/event/appEvent'
 import type { ListEventTypes } from '@/event/listEvent'
 import type { DislikeEventTypes } from '@/event/dislikeEvent'
 import type { StateEventTypes } from '@/event/stateEvent'
+import type { ListenTogetherEventType } from '@/event/listenTogetherEvent'
 import type { I18n } from '@/lang/i18n'
 import type { Buffer as _Buffer } from 'buffer'
 import type { SettingScreenIds } from '@/screens/Home/Views/Setting'
@@ -68,6 +69,7 @@ declare global {
   var list_event: ListEventTypes
   var dislike_event: DislikeEventTypes
   var state_event: StateEventTypes
+  var listen_together_event: ListenTogetherEventType
 
   var Buffer: typeof _Buffer
 
