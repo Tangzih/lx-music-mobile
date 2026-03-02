@@ -5,6 +5,7 @@ import playerState from '@/store/player/state'
 import { saveData, getData, removeData } from '@/plugins/storage'
 import { saveListMusics, getListMusics } from '@/utils/data'
 import { LIST_IDS } from '@/config/constant'
+import { allMusicList } from '@/utils/listManage'
 
 // 存储key
 const STORAGE_KEY_RECOMMEND_LIST = 'recommend_list'
@@ -20,6 +21,7 @@ const setRecommendList = (list: LX.Music.MusicInfoOnline[]) => {
 
 /**
  * 保存推荐列表到本地存储（使用和"我的列表"相同的机制）
+ * 同时更新内存中的 allMusicList
  */
 const saveRecommendListToStorage = async(list: LX.Music.MusicInfoOnline[]) => {
   try {
@@ -27,6 +29,8 @@ const saveRecommendListToStorage = async(list: LX.Music.MusicInfoOnline[]) => {
     await saveData(STORAGE_KEY_RECOMMEND_LIST, list)
     // 同时保存到 allMusicList 存储系统（用于播放器读取）
     await saveListMusics([{ id: LIST_IDS.RECOMMEND, musics: list }])
+    // 更新内存中的 allMusicList（播放器从这里读取）
+    allMusicList.set(LIST_IDS.RECOMMEND, list)
   } catch (e) {
     console.error('[推荐] 保存推荐列表失败:', e)
   }
@@ -34,16 +38,23 @@ const saveRecommendListToStorage = async(list: LX.Music.MusicInfoOnline[]) => {
 
 /**
  * 从本地存储加载推荐列表
+ * 同时更新内存中的 allMusicList
  */
 const loadRecommendListFromStorage = async(): Promise<LX.Music.MusicInfoOnline[]> => {
   try {
     // 优先从 allMusicList 存储系统加载（和"我的列表"一致）
     const list = await getListMusics(LIST_IDS.RECOMMEND)
     if (list && list.length > 0) {
+      // 更新内存中的 allMusicList（播放器从这里读取）
+      allMusicList.set(LIST_IDS.RECOMMEND, list)
       return list as LX.Music.MusicInfoOnline[]
     }
     // 兼容旧数据：从专用存储加载
     const legacyList = await getData<LX.Music.MusicInfoOnline[]>(STORAGE_KEY_RECOMMEND_LIST)
+    if (legacyList && legacyList.length > 0) {
+      // 更新内存中的 allMusicList
+      allMusicList.set(LIST_IDS.RECOMMEND, legacyList)
+    }
     return legacyList || []
   } catch (e) {
     console.error('[推荐] 加载推荐列表失败:', e)
@@ -270,6 +281,8 @@ const clearRecommendList = async() => {
   await removeData(STORAGE_KEY_RECOMMEND_LIST)
   // 同时清空 allMusicList 中的数据
   await saveListMusics([{ id: LIST_IDS.RECOMMEND, musics: [] }])
+  // 从内存中的 allMusicList 删除
+  allMusicList.delete(LIST_IDS.RECOMMEND)
   // 更新清空时间
   const now = Date.now()
   recommendState.lastClearTime = now
