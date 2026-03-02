@@ -455,6 +455,8 @@ export const fetchRecommendations = async(
       // 搜索推荐歌曲
       onProgress?.('搜索推荐歌曲中...')
       let foundInThisRound = 0
+      let searchFailedCount = 0
+      let duplicateCount = 0
 
       for (const song of recommendedSongs) {
         const songKey = `${song.name} - ${song.singer}`.toLowerCase()
@@ -464,6 +466,7 @@ export const fetchRecommendations = async(
 
         // 去重检查
         if (searchedSongs.has(songKey)) {
+          duplicateCount++
           continue
         }
 
@@ -479,12 +482,16 @@ export const fetchRecommendations = async(
             foundInThisRound++
           } else {
             console.log(`[推荐] 歌曲已在推荐列表中: ${song.name} - ${song.singer}`)
+            duplicateCount++
           }
+        } else {
+          console.log(`[推荐] 搜索失败: ${song.name} - ${song.singer}`)
+          searchFailedCount++
         }
         // 不再提前 break，处理完所有 AI 返回的歌曲
       }
 
-      console.log(`[推荐] 第${attempt}次尝试找到 ${foundInThisRound} 首新歌曲，当前共 ${result.length} 首`)
+      console.log(`[推荐] 第${attempt}次尝试: AI返回${recommendedSongs.length}首, 找到${foundInThisRound}首, 搜索失败${searchFailedCount}首, 重复${duplicateCount}首, 当前共${result.length}首`)
 
       // 如果这轮没找到任何新歌曲，说明AI可能已经无法提供更多了
       if (foundInThisRound === 0) {
