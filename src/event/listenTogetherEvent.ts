@@ -91,6 +91,6 @@ export class ListenTogetherEvent extends Event {
 
 export type ListenTogetherEventType = Omit<ListenTogetherEvent, keyof Event>
 
-export const createListenTogetherEventHub = (): ListenTogetherEventType > {
+export const createListenTogetherEventHub = (): ListenTogetherEventType => {
   return new ListenTogetherEvent()
 }
