@@ -274,6 +274,54 @@ const matchSinger = (searchSinger: string, targetSinger: string): boolean => {
 }
 
 /**
+ * 计算两个字符串的相似度
+ * @param str1 字符串1
+ * @param str2 字符串2
+ * @returns 相似度（0-1之间的数值，1表示完全相同）
+ */
+const calculateNameSimilarity = (str1: string, str2: string): number => {
+  const s1 = str1.toLowerCase().trim()
+  const s2 = str2.toLowerCase().trim()
+
+  // 完全匹配
+  if (s1 === s2) return 1.0
+
+  // 长度差异过大则相似度很低
+  const lenDiff = Math.abs(s1.length - s2.length) / Math.max(s1.length, s2.length)
+  if (lenDiff > 0.5) return 0 // 长度相差超过一半，直接返回0
+
+  // 使用最长公共子序列算法计算相似度
+  const lcsLength = longestCommonSubsequence(s1, s2)
+  const similarity = (2 * lcsLength) / (s1.length + s2.length)
+
+  return similarity
+}
+
+/**
+ * 计算两个字符串的最长公共子序列长度
+ * @param str1 字符串1
+ * @param str2 字符串2
+ * @returns 最长公共子序列长度
+ */
+const longestCommonSubsequence = (str1: string, str2: string): number => {
+  const m = str1.length
+  const n = str2.length
+  const dp: number[][] = Array(m + 1).fill(null).map(() => Array(n + 1).fill(0))
+
+  for (let i = 1; i <= m; i++) {
+    for (let j = 1; j <= n; j++) {
+      if (str1[i - 1] === str2[j - 1]) {
+        dp[i][j] = dp[i - 1][j - 1] + 1
+      } else {
+        dp[i][j] = Math.max(dp[i - 1][j], dp[i][j - 1])
+      }
+    }
+  }
+
+  return dp[m][n]
+}
+
+/**
  * 验证并规范化音源平台代码
  * @param source AI 返回的音源代码
  * @returns 有效的音源代码或 null
@@ -328,15 +376,22 @@ export const searchRecommendSong = async(song: RecommendSong, retryCount = 0): P
             console.log(`[推荐] 在 ${preferSource} 找到匹配歌曲: ${matched.name} - ${matched.singer}`)
             return matched
           }
-          // 没有精确匹配，返回第一个结果
-          console.log(`[推荐] 在 ${preferSource} 未精确匹配歌手，使用第一个结果: ${preferSourceResults[0].name} - ${preferSourceResults[0].singer}`)
-          return preferSourceResults[0]
+          // 没有精确匹配歌手，降级到聚合搜索
+          console.log(`[推荐] 在 ${preferSource} 未精确匹配歌手，降级到聚合搜索`)
+        } else {
+          // 没有歌手信息时，检查歌曲名相似度
+          const nameSimilarity = calculateNameSimilarity(preferSourceResults[0].name, name)
+          if (nameSimilarity > 0.7) {
+            console.log(`[推荐] 在 ${preferSource} 找到歌曲（名称相似）: ${preferSourceResults[0].name} - ${preferSourceResults[0].singer}`)
+            return preferSourceResults[0]
+          }
+          // 名称不匹配，降级到聚合搜索
+          console.log(`[推荐] 在 ${preferSource} 歌曲名不匹配，降级到聚合搜索`)
         }
-        console.log(`[推荐] 在 ${preferSource} 找到歌曲: ${preferSourceResults[0].name} - ${preferSourceResults[0].singer}`)
-        return preferSourceResults[0]
+      } else {
+        // 指定平台无结果，降级到聚合搜索
+        console.log(`[推荐] 在 ${preferSource} 未找到歌曲，降级到聚合搜索`)
       }
-      // 指定平台无结果，降级到聚合搜索
-      console.log(`[推荐] 在 ${preferSource} 未找到歌曲，降级到聚合搜索`)
     }
 
     // 聚合搜索（带重试）
@@ -355,30 +410,72 @@ export const searchRecommendSong = async(song: RecommendSong, retryCount = 0): P
       return null
     }
 
-    // 如果有歌手名，尝试匹配歌手来筛选结果
+    // 智能匹配搜索结果
     if (singer) {
-      // 优先匹配歌手的结果
-      const matchedResult = results.find(result => matchSinger(result.singer, singer))
-      if (matchedResult) {
-        console.log(`[推荐] 聚合搜索匹配到歌手: ${matchedResult.name} - ${matchedResult.singer} [${matchedResult.source}]`)
-        return matchedResult
+      // 优先精确匹配歌手和歌曲名
+      const exactMatch = results.find(result =>
+        matchSinger(result.singer, singer) &&
+        result.name.toLowerCase().includes(name.toLowerCase())
+      )
+      if (exactMatch) {
+        console.log(`[推荐] 聚合搜索找到精确匹配: ${exactMatch.name} - ${exactMatch.singer} [${exactMatch.source}]`)
+        return exactMatch
       }
 
-      // 如果有专辑名，尝试匹配专辑
-      if (album) {
-        const albumMatched = results.find(result =>
-          result.meta.albumName && matchSinger(result.meta.albumName, album)
-        )
-        if (albumMatched) {
-          console.log(`[推荐] 聚合搜索匹配到专辑: ${albumMatched.name} - ${albumMatched.singer} [${albumMatched.source}]`)
-          return albumMatched
+      // 次之匹配歌手，歌曲名相似（小范围模糊匹配）
+      const singerMatch = results.find(result => {
+        if (matchSinger(result.singer, singer)) {
+          // 检查歌曲名是否相似（长度相近且有一定字符重叠）
+          const nameSimilarity = calculateNameSimilarity(result.name, name)
+          return nameSimilarity > 0.6 // 至少60%相似度
         }
+        return false
+      })
+      if (singerMatch) {
+        console.log(`[推荐] 聚合搜索歌手匹配，歌曲名相似: ${singerMatch.name} - ${singerMatch.singer} [${singerMatch.source}]`)
+        return singerMatch
+      }
+
+      // 再次匹配歌曲名，忽略歌手（可能是AI识别错误），并使用小范围模糊匹配
+      const nameMatch = results.find(result => {
+        const nameSimilarity = calculateNameSimilarity(result.name, name)
+        return nameSimilarity > 0.7 // 更高的相似度要求
+      })
+      if (nameMatch) {
+        console.log(`[推荐] 聚合搜索歌曲名模糊匹配: ${nameMatch.name} - ${nameMatch.singer} [${nameMatch.source}]`)
+        return nameMatch
+      }
+
+      // 如果有专辑名，尝试匹配专辑（使用字符串相似度）
+      if (album) {
+        const albumMatch = results.find(result => {
+          if (result.meta.albumName) {
+            // 使用字符串相似度匹配专辑名
+            const albumSimilarity = calculateNameSimilarity(result.meta.albumName, album)
+            return albumSimilarity > 0.6 // 至少60%相似度
+          }
+          return false
+        })
+        if (albumMatch) {
+          console.log(`[推荐] 聚合搜索专辑匹配: ${albumMatch.name} - ${albumMatch.singer} [${albumMatch.source}]`)
+          return albumMatch
+        }
+      }
+    } else {
+      // 没有歌手信息时，主要匹配歌曲名（使用小范围模糊匹配）
+      const nameMatch = results.find(result => {
+        const nameSimilarity = calculateNameSimilarity(result.name, name)
+        return nameSimilarity > 0.7
+      })
+      if (nameMatch) {
+        console.log(`[推荐] 聚合搜索歌曲名匹配: ${nameMatch.name} - ${nameMatch.singer} [${nameMatch.source}]`)
+        return nameMatch
       }
     }
 
-    // 返回第一个结果
-    console.log(`[推荐] 聚合搜索使用第一个结果: ${results[0].name} - ${results[0].singer} [${results[0].source}]`)
-    return results[0]
+    // 如果没有找到合适的匹配，返回null表示搜索失败
+    console.log(`[推荐] 未找到匹配的歌曲: ${name} - ${singer || '未知歌手'}`)
+    return null
   } catch (error) {
     console.log('[推荐] 搜索歌曲失败:', searchText, error)
     // 异常情况下，如果还有重试次数，重试
