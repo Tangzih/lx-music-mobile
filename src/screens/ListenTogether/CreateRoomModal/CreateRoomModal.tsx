@@ -6,7 +6,7 @@ import {
   Switch,
 } from 'react-native'
 import { Navigation } from 'react-native-navigation'
-import { useTheme } from '@/store/theme'
+import { useTheme } from '@/store/theme/hook'
 import Text from '@/components/common/Text'
 import Button from '@/components/common/Button'
 import Input from '@/components/common/Input'

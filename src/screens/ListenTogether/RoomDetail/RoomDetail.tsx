@@ -10,7 +10,7 @@ import {
 } from 'react-native'
 import { Navigation } from 'react-native-navigation'
 import { useListenTogether, useCurrentRoom, useRoomMembers, useRoomMessages, useConnectionStatus } from '@/store/listenTogether'
-import { useTheme } from '@/store/theme'
+import { useTheme } from '@/store/theme/hook'
 import Text from '@/components/common/Text'
 import Icon from '@/components/common/Icon'
 import Button from '@/components/common/Button'
