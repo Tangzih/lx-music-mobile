@@ -137,7 +137,8 @@ export const getRecommendedMusicIds = (): Set<string> => {
  * @param musicList 歌曲列表
  * @param recommendCount 推荐数量
  * @param extraPrompt 附加提示词
- * @param triedSongs 已尝试推荐的歌曲（用于补充推荐时排除）
+ * @param existedSongs 已存在推荐列表的歌曲（用于排除重复）
+ * @param failedSearchSongs 搜索失败的歌曲（用于告知AI这些找不到了）
  * @param maxTokens 最大token限制
  * @returns 提示词和token警告
  */
@@ -145,7 +146,8 @@ export const buildPrompt = (
   musicList: string[],
   recommendCount: number,
   extraPrompt?: string,
-  triedSongs?: Set<string>,
+  existedSongs?: Set<string>,
+  failedSearchSongs?: Set<string>,
   maxTokens?: number
 ): { prompt: string; tokenWarning?: string } => {
   let prompt: string
@@ -173,13 +175,22 @@ ${musicList.map((song, index) => `${index + 1}. ${song}`).join('\n')}
 ${recommendedSongs.map((song, index) => `${index + 1}. ${song}`).join('\n')}`
   }
 
-  // 添加已尝试推荐的歌曲信息（补充推荐时）
-  if (triedSongs && triedSongs.size > 0) {
-    const triedList = Array.from(triedSongs).slice(-100) // 最多100首
+  // 添加已存在推荐列表的歌曲信息（用于排除重复）
+  if (existedSongs && existedSongs.size > 0) {
+    const existedList = Array.from(existedSongs).slice(-100) // 最多100首
     prompt += `
 
-注意：以下歌曲已经尝试过推荐但未找到或已存在，请推荐其他歌曲：
-${triedList.map((song, index) => `${index + 1}. ${song}`).join('\n')}`
+注意：以下歌曲已经存在于推荐列表中，请推荐其他歌曲：
+${existedList.map((song, index) => `${index + 1}. ${song}`).join('\n')}`
+  }
+
+  // 添加搜索失败的歌曲信息（告知AI这些找不到了）
+  if (failedSearchSongs && failedSearchSongs.size > 0) {
+    const failedList = Array.from(failedSearchSongs).slice(-100) // 最多100首
+    prompt += `
+
+特别注意：以下歌曲已被尝试搜索但未能找到资源，请避免再次推荐这些具体歌曲：
+${failedList.map((song, index) => `${index + 1}. ${song}`).join('\n')}`
   }
 
   // 添加附加提示词
@@ -422,6 +433,8 @@ export const fetchRecommendations = async(
     // 3. 循环获取推荐直到达到目标数量
     let attempt = 0
     let tokenWarningShown = false
+    const existedSongs = new Set<string>() // 已存在于推荐列表的歌曲
+    const failedSearchSongs = new Set<string>() // 搜索失败的歌曲
 
     while (result.length < recommendCount && attempt < maxRetries) {
       attempt++
@@ -429,8 +442,8 @@ export const fetchRecommendations = async(
       // 计算还需要多少首
       const needCount = recommendCount - result.length
 
-      // 构建提示词（包含已尝试的歌曲信息）
-      const { prompt, tokenWarning } = buildPrompt(musicList, needCount, extraPrompt, triedSongs, maxTokens)
+      // 构建提示词（包含已存在的歌曲和搜索失败的歌曲信息）
+      const { prompt, tokenWarning } = buildPrompt(musicList, needCount, extraPrompt, existedSongs, failedSearchSongs, maxTokens)
 
       // 显示token警告（只显示一次）
       if (tokenWarning && !tokenWarningShown) {
@@ -449,6 +462,8 @@ export const fetchRecommendations = async(
         response,
         requestSongs: musicList,
         recommendedSongs: recommendedSongs.map(s => `${s.name} - ${s.singer}${s.source ? ` [${s.source}]` : ''}`),
+        existedSongs: Array.from(existedSongs), // 已存在于推荐列表的歌曲
+        failedSearchSongs: Array.from(failedSearchSongs), // 搜索失败的歌曲
         attempt, // 记录当前是第几次尝试
       })
 
@@ -461,10 +476,7 @@ export const fetchRecommendations = async(
       for (const song of recommendedSongs) {
         const songKey = `${song.name} - ${song.singer}`.toLowerCase()
 
-        // 记录已尝试的歌曲
-        triedSongs.add(songKey)
-
-        // 去重检查
+        // 去重检查（避免重复搜索）
         if (searchedSongs.has(songKey)) {
           duplicateCount++
           continue
@@ -479,6 +491,7 @@ export const fetchRecommendations = async(
             result.push(musicInfo)
             searchedSongs.add(songKey)
             recommendedIds.add(musicInfo.id) // 添加到已存在集合，防止本次推荐重复
+            existedSongs.add(songKey) // 添加到已存在推荐列表的歌曲集合
             foundInThisRound++
           } else {
             console.log(`[推荐] 歌曲已在推荐列表中: ${song.name} - ${song.singer}`)
@@ -486,6 +499,7 @@ export const fetchRecommendations = async(
           }
         } else {
           console.log(`[推荐] 搜索失败: ${song.name} - ${song.singer}`)
+          failedSearchSongs.add(songKey) // 添加到搜索失败的歌曲集合
           searchFailedCount++
         }
         // 不再提前 break，处理完所有 AI 返回的歌曲

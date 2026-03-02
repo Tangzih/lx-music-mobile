@@ -30,6 +30,19 @@ const formatLogs = (logs: LX.Recommend.AILogEntry[]): string => {
       `模型: ${log.model}`,
       `分析歌曲: ${log.requestSongs.slice(0, 5).join(', ')}${log.requestSongs.length > 5 ? '...' : ''}`,
       `推荐歌曲: ${log.recommendedSongs.join(', ')}`,
+    ]
+
+    // 添加已存在歌曲信息
+    if (log.existedSongs && log.existedSongs.length > 0) {
+      lines.push(`已存在歌曲: ${log.existedSongs.slice(0, 10).join(', ')}${log.existedSongs.length > 10 ? `...(${log.existedSongs.length}首)` : ''}`)
+    }
+
+    // 添加搜索失败歌曲信息
+    if (log.failedSearchSongs && log.failedSearchSongs.length > 0) {
+      lines.push(`搜索失败: ${log.failedSearchSongs.slice(0, 10).join(', ')}${log.failedSearchSongs.length > 10 ? `...(${log.failedSearchSongs.length}首)` : ''}`)
+    }
+
+    lines.push(
       `---`,
       `提示词:`,
       log.prompt,
@@ -37,7 +50,7 @@ const formatLogs = (logs: LX.Recommend.AILogEntry[]): string => {
       `AI响应:`,
       log.response,
       ``,
-    ]
+    )
     return lines.join('\n')
   }).join('\n\n')
 }
