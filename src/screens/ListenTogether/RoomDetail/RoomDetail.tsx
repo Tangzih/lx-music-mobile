@@ -9,7 +9,7 @@ import {
   Image,
 } from 'react-native'
 import { Navigation } from 'react-native-navigation'
-import { useListenTogether } from '@/hooks/useListenTogether'
+import { useListenTogether, useCurrentRoom, useRoomMembers, useRoomMessages, useConnectionStatus } from '@/store/listenTogether'
 import { useTheme } from '@/store/theme'
 import Text from '@/components/common/Text'
 import Icon from '@/components/common/Icon'
@@ -66,22 +66,19 @@ const MemberItem: React.FC<MemberItemProps> = ({ member, isHost }) => {
 
 const RoomDetail: React.FC<Props> = ({ componentId, roomId }) => {
   const theme = useTheme()
-  const player = usePlayer()
-  const [messageInput, setMessageInput] = React.useState('')
-  const [activeTab, setActiveTab] = React.useState<'chat' | 'members' | 'playlist'>('chat')
+  const [messageInput, setMessageInput] = useState('')
+  const [activeTab, setActiveTab] = useState<'chat' | 'members' | 'playlist'>('chat')
 
   const {
-    currentRoom,
-    members,
-    messages,
-    isConnected,
     leaveRoom,
     sendMessage,
     sendReaction,
-  } = useListenTogether({
-    serverUrl: 'wss://your-listen-together-server.com/ws',
-    userId: 'user-' + Date.now(),
-  })
+    changeSong,
+  } = useListenTogether()
+  const currentRoom = useCurrentRoom()
+  const members = useRoomMembers()
+  const messages = useRoomMessages()
+  const isConnected = useConnectionStatus()
 
   useEffect(() => {
     // 加入房间
@@ -115,16 +112,10 @@ const RoomDetail: React.FC<Props> = ({ componentId, roomId }) => {
     // 同步播放状态
     const { currentSong, isPlaying, currentTime } = currentRoom.playbackState
     if (currentSong) {
-      // 播放指定歌曲
-      // player.play(currentSong)
-      if (isPlaying) {
-        // player.resume()
-      } else {
-        // player.pause()
-      }
-      // player.seek(currentTime)
+      // TODO: 播放指定歌曲
+      console.log('syncPlayback', { currentSong, isPlaying, currentTime })
     }
-  }, [currentRoom, player])
+  }, [currentRoom])
 
   const renderMessage = useCallback(({ item }: { item: LX.ListenTogether.ChatMessage }) => (
     <View style={[styles.messageItem, { backgroundColor: theme.secondary }]} >
@@ -142,7 +133,8 @@ const RoomDetail: React.FC<Props> = ({ componentId, roomId }) => {
     </View>
   ), [theme])
 
-  const isHost = currentRoom?.hostId === 'user-' + Date.now()
+  // TODO: 使用实际的用户ID进行比较
+  const isHost = currentRoom?.hostId != null
 
   return (
     <PageContent style={styles.container}>
