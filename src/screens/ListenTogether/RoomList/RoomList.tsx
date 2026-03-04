@@ -10,7 +10,7 @@ import { Navigation } from 'react-native-navigation'
 import { useListenTogether, useRoomList, useMyRooms } from '@/store/listenTogether'
 import { useTheme } from '@/store/theme/hook'
 import Text from '@/components/common/Text'
-import Icon from '@/components/common/Icon'
+import { Icon } from '@/components/common/Icon'
 import Button from '@/components/common/Button'
 import { ROOM_DETAIL_SCREEN, CREATE_ROOM_MODAL } from './screenNames'
 
@@ -51,14 +51,14 @@ const RoomListItem: React.FC<RoomListItemProps> = ({ room, onPress }) => {
 
       <View style={styles.roomFooter}>
         <View style={styles.footerItem}>
-          <Icon icon='account' size={14} color={theme['secondary-font']} />
+          <Icon name='account' size={14} color={theme['secondary-font']} />
           <Text style={[styles.footerText, { color: theme['secondary-font'] }]}>
             {room.currentMembers}/{room.maxMembers}
           </Text>
         </View>
 
         <View style={styles.footerItem}>
-          <Icon icon='account-circle' size={14} color={theme['secondary-font']} />
+          <Icon name='account-circle' size={14} color={theme['secondary-font']} />
           <Text style={[styles.footerText, { color: theme['secondary-font'] }]} numberOfLines={1}>
             {room.hostName}
           </Text>
@@ -191,7 +191,7 @@ const RoomList: React.FC<Props> = ({ componentId }) => {
         }
         ListEmptyComponent={
           <View style={styles.emptyContainer}>
-            <Icon icon='music-off' size={48} color={theme['secondary-font']} />
+            <Icon name='music-off' size={48} color={theme['secondary-font']} />
             <Text style={[styles.emptyText, { color: theme['secondary-font'] }]} >
               暂无房间
             </Text>

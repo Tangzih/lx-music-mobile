@@ -14,7 +14,7 @@ import { Navigation } from 'react-native-navigation'
 import { useListenTogether, useCurrentRoom, useRoomMembers, useRoomMessages, useConnectionStatus, useIsInRoom } from '@/store/listenTogether'
 import { useTheme } from '@/store/theme/hook'
 import Text from '@/components/common/Text'
-import Icon from '@/components/common/Icon'
+import { Icon } from '@/components/common/Icon'
 import Button from '@/components/common/Button'
 import PageContent from '@/components/PageContent'
 import { getListMusics } from '@/utils/data'
@@ -175,13 +175,13 @@ const RoomDetail: React.FC<Props> = ({ componentId, roomId }) => {
       {/* 顶部导航 */}
       <View style={[styles.navBar, { borderBottomColor: theme.border }]} >
         <TouchableOpacity onPress={handleBack} style={styles.backBtn}>
-          <Icon icon='arrow-left' size={24} color={theme['primary-font']} />
+          <Icon name='arrow-left' size={24} color={theme['primary-font']} />
         </TouchableOpacity>
         <Text style={[styles.navTitle, { color: theme['primary-font'] }]} >
           {currentRoom?.name ?? '房间'}
         </Text>
         <TouchableOpacity onPress={handleSyncPlayback} style={styles.syncBtn}>
-          <Icon icon='sync' size={20} color={theme.primary} />
+          <Icon name='sync' size={20} color={theme.primary} />
         </TouchableOpacity>
       </View>
 
@@ -189,13 +189,13 @@ const RoomDetail: React.FC<Props> = ({ componentId, roomId }) => {
       {currentRoom && (
         <View style={[styles.roomInfo, { backgroundColor: theme.secondary }]} >
           <View style={styles.roomInfoRow}>
-            <Icon icon='account' size={16} color={theme['secondary-font']} />
+            <Icon name='account' size={16} color={theme['secondary-font']} />
             <Text style={[styles.roomInfoText, { color: theme['secondary-font'] }]} >
               {currentRoom.currentMembers}/{currentRoom.maxMembers} 人
             </Text>
           </View>
           <View style={styles.roomInfoRow}>
-            <Icon icon='account-circle' size={16} color={theme['secondary-font']} />
+            <Icon name='account-circle' size={16} color={theme['secondary-font']} />
             <Text style={[styles.roomInfoText, { color: theme['secondary-font'] }]} >
               房主: {currentRoom.hostName}
             </Text>
@@ -219,7 +219,7 @@ const RoomDetail: React.FC<Props> = ({ componentId, roomId }) => {
             onPress={() => setActiveTab(tab.key)}
           >
             <Icon
-              icon={tab.icon}
+              name={tab.icon}
               size={18}
               color={activeTab === tab.key ? theme.primary : theme['secondary-font']}
             />
@@ -262,7 +262,7 @@ const RoomDetail: React.FC<Props> = ({ componentId, roomId }) => {
                 onPress={handleSendMessage}
                 disabled={!messageInput.trim()}
               >
-                <Icon icon='send' size={18} color='#fff' />
+                <Icon name='send' size={18} color='#fff' />
               </TouchableOpacity>
             </View>
           </>
@@ -291,14 +291,14 @@ const RoomDetail: React.FC<Props> = ({ componentId, roomId }) => {
                 style={[styles.actionBtn, { backgroundColor: theme.primary }]}
                 onPress={handleUploadPlaylist}
               >
-                <Icon icon='upload' size={16} color='#fff' />
+                <Icon name='upload' size={16} color='#fff' />
                 <Text style={styles.actionBtnText}>上传歌单</Text>
               </TouchableOpacity>
               <TouchableOpacity
                 style={[styles.actionBtn, { backgroundColor: theme.secondary }]}
                 onPress={handleAddSong}
               >
-                <Icon icon='plus' size={16} color={theme['primary-font']} />
+                <Icon name='plus' size={16} color={theme['primary-font']} />
                 <Text style={[styles.actionBtnText, { color: theme['primary-font'] }]}>添加歌曲</Text>
               </TouchableOpacity>
             </View>
@@ -370,7 +370,7 @@ const RoomDetail: React.FC<Props> = ({ componentId, roomId }) => {
               </View>
             ) : (
               <View style={styles.emptyPlaylist}>
-                <Icon icon='playlist-music' size={48} color={theme['secondary-font']} />
+                <Icon name='playlist-music' size={48} color={theme['secondary-font']} />
                 <Text style={[styles.emptyText, { color: theme['secondary-font'] }]} >
                   播放列表为空
                 </Text>
