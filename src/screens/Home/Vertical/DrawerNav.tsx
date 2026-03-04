@@ -7,8 +7,8 @@ import { Icon } from '@/components/common/Icon'
 import { confirmDialog, createStyle, exitApp as backHome } from '@/utils/tools'
 import { NAV_MENUS } from '@/config/constant'
 import type { InitState } from '@/store/common/state'
-// import { navigations } from '@/navigation'
-// import commonState from '@/store/common/state'
+import { navigations } from '@/navigation'
+import commonState from '@/store/common/state'
 import { exitApp, setNavActiveId } from '@/core/common'
 import Text from '@/components/common/Text'
 import { useSettingValue } from '@/store/setting/hook'
@@ -115,6 +115,10 @@ export default memo(() => {
         return
       case 'back_home':
         backHome()
+        return
+      case 'nav_listen_together':
+        global.app_event.changeMenuVisible(false)
+        navigations.pushRoomListScreen(commonState.componentIds.home!)
         return
     }
 
