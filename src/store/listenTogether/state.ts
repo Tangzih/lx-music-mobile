@@ -5,6 +5,8 @@
 export interface ListenTogetherState {
   /** 是否已连接到服务器 */
   isConnected: boolean
+  /** 是否在房间中（用于禁用本地播放器） */
+  isInRoom: boolean
   /** 当前房间信息 */
   currentRoom: LX.ListenTogether.RoomInfo | null
   /** 当前房间成员列表 */
@@ -25,6 +27,7 @@ export interface ListenTogetherState {
 
 export const initialState: ListenTogetherState = {
   isConnected: false,
+  isInRoom: false,
   currentRoom: null,
   members: [],
   messages: [],

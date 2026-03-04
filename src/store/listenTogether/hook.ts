@@ -7,6 +7,7 @@ import { getState } from './state'
 import type { ListenTogetherState } from './state'
 import {
   setConnectionStatus,
+  setInRoom,
   setCurrentRoom,
   setMembers,
   addMember,
@@ -56,6 +57,7 @@ export const initService = async (serverUrl: string, userId: string, userName?: 
   serviceInstance.on('roomStateUpdated', (data) => {
     setCurrentRoom(data.room)
     setMembers(data.members)
+    setInRoom(true)
   })
 
   serviceInstance.on('playbackStateUpdated', (state) => {
@@ -126,6 +128,7 @@ export const disconnectService = () => {
     serviceInstance = null
   }
   setConnectionStatus(false)
+  setInRoom(false)
   setCurrentRoom(null)
   setMembers([])
   clearMessages()
@@ -180,6 +183,11 @@ export const useMyRooms = () => {
   return state.myRooms
 }
 
+export const useIsInRoom = () => {
+  const state = useListenTogetherState()
+  return state.isInRoom
+}
+
 /**
  * 一起听 Hook，用于组件中获取状态和操作方法
  */
@@ -226,6 +234,7 @@ export const useListenTogether = () => {
       return
     }
     serviceInstance.leaveRoom()
+    setInRoom(false)
     setCurrentRoom(null)
     setMembers([])
     clearMessages()
@@ -295,6 +304,30 @@ export const useListenTogether = () => {
     serviceInstance.addToQueue(musicInfo)
   }, [])
 
+  const uploadPlaylist = useCallback((playlist: LX.Music.MusicInfo[]) => {
+    if (!serviceInstance) {
+      console.warn('Service not initialized')
+      return
+    }
+    serviceInstance.uploadPlaylist(playlist)
+  }, [])
+
+  const addToPlaylist = useCallback((musicInfo: LX.Music.MusicInfo) => {
+    if (!serviceInstance) {
+      console.warn('Service not initialized')
+      return
+    }
+    serviceInstance.addToPlaylist(musicInfo)
+  }, [])
+
+  const removeFromPlaylist = useCallback((index: number) => {
+    if (!serviceInstance) {
+      console.warn('Service not initialized')
+      return
+    }
+    serviceInstance.removeFromPlaylist(index)
+  }, [])
+
   const connect = useCallback(async (serverUrl: string, userId: string, userAvatar?: string) => {
     await initService(serverUrl, userId, userAvatar)
   }, [])
@@ -316,6 +349,9 @@ export const useListenTogether = () => {
     resume,
     seek,
     addToQueue,
+    uploadPlaylist,
+    addToPlaylist,
+    removeFromPlaylist,
     connect,
     disconnect,
   }

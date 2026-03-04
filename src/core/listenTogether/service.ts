@@ -229,6 +229,39 @@ export class ListenTogetherService extends Event {
   }
 
   /**
+   * 上传/替换播放列表
+   */
+  uploadPlaylist(playlist: LX.Music.MusicInfo[]): void {
+    this.ws.send('upload_playlist', {
+      roomId: this.currentRoomId,
+      playlist,
+      triggeredBy: this.userId,
+    })
+  }
+
+  /**
+   * 添加歌曲到播放列表
+   */
+  addToPlaylist(musicInfo: LX.Music.MusicInfo): void {
+    this.ws.send('add_to_playlist', {
+      roomId: this.currentRoomId,
+      musicInfo,
+      triggeredBy: this.userId,
+    })
+  }
+
+  /**
+   * 从播放列表移除歌曲
+   */
+  removeFromPlaylist(index: number): void {
+    this.ws.send('remove_from_playlist', {
+      roomId: this.currentRoomId,
+      index,
+      triggeredBy: this.userId,
+    })
+  }
+
+  /**
    * 发送聊天消息
    */
   sendMessage(content: string, type: LX.ListenTogether.MessageType = 'text'): void {

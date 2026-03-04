@@ -9,6 +9,11 @@ export const setConnectionStatus = (isConnected: boolean): void => {
   setState({ isConnected })
 }
 
+/** 设置是否在房间中 */
+export const setInRoom = (isInRoom: boolean): void => {
+  setState({ isInRoom })
+}
+
 /** 设置当前房间 */
 export const setCurrentRoom = (room: LX.ListenTogether.RoomInfo | null): void => {
   setState({ currentRoom: room })

@@ -7,14 +7,17 @@ import {
   FlatList,
   TextInput,
   Image,
+  ActionSheetIOS,
+  Platform,
 } from 'react-native'
 import { Navigation } from 'react-native-navigation'
-import { useListenTogether, useCurrentRoom, useRoomMembers, useRoomMessages, useConnectionStatus } from '@/store/listenTogether'
+import { useListenTogether, useCurrentRoom, useRoomMembers, useRoomMessages, useConnectionStatus, useIsInRoom } from '@/store/listenTogether'
 import { useTheme } from '@/store/theme/hook'
 import Text from '@/components/common/Text'
 import Icon from '@/components/common/Icon'
 import Button from '@/components/common/Button'
 import PageContent from '@/components/PageContent'
+import { getListMusics } from '@/utils/data'
 
 interface Props {
   componentId: string
@@ -77,11 +80,16 @@ const RoomDetail: React.FC<Props> = ({ componentId, roomId }) => {
     play,
     pause,
     seek,
+    uploadPlaylist,
+    addToPlaylist,
+    removeFromPlaylist,
+    addToQueue,
   } = useListenTogether()
   const currentRoom = useCurrentRoom()
   const members = useRoomMembers()
   const messages = useRoomMessages()
   const isConnected = useConnectionStatus()
+  const isInRoom = useIsInRoom()
 
   useEffect(() => {
     // 加入房间
@@ -139,6 +147,28 @@ const RoomDetail: React.FC<Props> = ({ componentId, roomId }) => {
   // 判断当前用户是否可以控制播放
   // 房主始终可以控制，如果 allowMemberControl 为 true 则成员也可以控制
   const canControlPlayback = currentRoom?.allowMemberControl === true || currentRoom?.hostId != null
+
+  // 上传本地歌单到房间播放列表
+  const handleUploadPlaylist = useCallback(async () => {
+    if (!canControlPlayback) return
+
+    // 获取本地收藏列表的歌曲
+    try {
+      const defaultListMusics = await getListMusics('default')
+      if (defaultListMusics && defaultListMusics.length > 0) {
+        uploadPlaylist(defaultListMusics)
+      }
+    } catch (err) {
+      console.error('Failed to upload playlist:', err)
+    }
+  }, [canControlPlayback, uploadPlaylist])
+
+  // 添加歌曲到播放列表
+  const handleAddSong = useCallback(() => {
+    if (!canControlPlayback) return
+    // TODO: 打开歌曲选择器
+    console.log('Add song to playlist')
+  }, [canControlPlayback])
 
   return (
     <PageContent style={styles.container}>
@@ -255,6 +285,24 @@ const RoomDetail: React.FC<Props> = ({ componentId, roomId }) => {
 
         {activeTab === 'playlist' && (
           <View style={styles.playlistContainer}>
+            {/* 操作按钮 */}
+            <View style={styles.playlistActions}>
+              <TouchableOpacity
+                style={[styles.actionBtn, { backgroundColor: theme.primary }]}
+                onPress={handleUploadPlaylist}
+              >
+                <Icon icon='upload' size={16} color='#fff' />
+                <Text style={styles.actionBtnText}>上传歌单</Text>
+              </TouchableOpacity>
+              <TouchableOpacity
+                style={[styles.actionBtn, { backgroundColor: theme.secondary }]}
+                onPress={handleAddSong}
+              >
+                <Icon icon='plus' size={16} color={theme['primary-font']} />
+                <Text style={[styles.actionBtnText, { color: theme['primary-font'] }]}>添加歌曲</Text>
+              </TouchableOpacity>
+            </View>
+
             {/* 当前播放 */}
             {currentRoom?.playbackState?.currentSong && (
               <View style={[styles.currentSongSection, { borderBottomColor: theme.border }]}>
@@ -499,6 +547,24 @@ const styles = StyleSheet.create({
   playlistContainer: {
     flex: 1,
     padding: 12,
+  },
+  playlistActions: {
+    flexDirection: 'row',
+    marginBottom: 12,
+    gap: 8,
+  },
+  actionBtn: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    paddingHorizontal: 12,
+    paddingVertical: 8,
+    borderRadius: 16,
+    gap: 4,
+  },
+  actionBtnText: {
+    color: '#fff',
+    fontSize: 12,
+    fontWeight: '500',
   },
   currentSongSection: {
     paddingBottom: 12,
