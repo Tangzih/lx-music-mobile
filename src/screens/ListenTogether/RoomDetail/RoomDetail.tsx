@@ -74,6 +74,9 @@ const RoomDetail: React.FC<Props> = ({ componentId, roomId }) => {
     sendMessage,
     sendReaction,
     changeSong,
+    play,
+    pause,
+    seek,
   } = useListenTogether()
   const currentRoom = useCurrentRoom()
   const members = useRoomMembers()
@@ -133,8 +136,9 @@ const RoomDetail: React.FC<Props> = ({ componentId, roomId }) => {
     </View>
   ), [theme])
 
-  // TODO: 使用实际的用户ID进行比较
-  const isHost = currentRoom?.hostId != null
+  // 判断当前用户是否可以控制播放
+  // 房主始终可以控制，如果 allowMemberControl 为 true 则成员也可以控制
+  const canControlPlayback = currentRoom?.allowMemberControl === true || currentRoom?.hostId != null
 
   return (
     <PageContent style={styles.container}>
@@ -251,31 +255,71 @@ const RoomDetail: React.FC<Props> = ({ componentId, roomId }) => {
 
         {activeTab === 'playlist' && (
           <View style={styles.playlistContainer}>
-            {currentRoom?.playbackState?.playlist && currentRoom.playbackState.playlist.length > 0 ? (
-              <FlatList
-                data={currentRoom.playbackState.playlist}
-                keyExtractor={(item, index) => `${item.id}-${index}`}
-                renderItem={({ item, index }) => (
-                  <TouchableOpacity
-                    style={[
-                      styles.playlistItem,
-                      index === currentRoom.playbackState?.currentIndex && {
-                        backgroundColor: theme.primary + '20',
-                      },
-                    ]}
-                    onPress={() => changeSong(index)}
-                    disabled={!isHost}
-                  >
-                    <Text style={[styles.songName, { color: theme['primary-font'] }]} >
+            {/* 当前播放 */}
+            {currentRoom?.playbackState?.currentSong && (
+              <View style={[styles.currentSongSection, { borderBottomColor: theme.border }]}>
+                <Text style={[styles.sectionTitle, { color: theme['secondary-font'] }]}>正在播放</Text>
+                <View style={[styles.currentSongItem, { backgroundColor: theme.primary + '20' }]}>
+                  <Text style={[styles.songName, { color: theme.primary, fontWeight: '600' }]}>
+                    {currentRoom.playbackState.currentSong.name}
+                  </Text>
+                  <Text style={[styles.singerName, { color: theme['secondary-font'] }]}>
+                    {currentRoom.playbackState.currentSong.singer}
+                  </Text>
+                </View>
+              </View>
+            )}
+
+            {/* 待播放队列 */}
+            {currentRoom?.playbackState?.queue && currentRoom.playbackState.queue.length > 0 && (
+              <View style={styles.queueSection}>
+                <Text style={[styles.sectionTitle, { color: theme['secondary-font'] }]}>
+                  待播放 ({currentRoom.playbackState.queue.length})
+                </Text>
+                {currentRoom.playbackState.queue.map((item, index) => (
+                  <View key={`queue-${index}`} style={[styles.queueItem, { backgroundColor: theme.secondary }]}>
+                    <Text style={[styles.songName, { color: theme['primary-font'] }]}>
                       {item.name}
                     </Text>
-                    <Text style={[styles.singerName, { color: theme['secondary-font'] }]} >
+                    <Text style={[styles.singerName, { color: theme['secondary-font'] }]}>
                       {item.singer}
                     </Text>
-                  </TouchableOpacity>
-                )}
-                showsVerticalScrollIndicator={false}
-              />
+                  </View>
+                ))}
+              </View>
+            )}
+
+            {/* 播放列表 */}
+            {currentRoom?.playbackState?.playlist && currentRoom.playbackState.playlist.length > 0 ? (
+              <View style={styles.playlistSection}>
+                <Text style={[styles.sectionTitle, { color: theme['secondary-font'] }]}>
+                  播放列表 ({currentRoom.playbackState.playlist.length})
+                </Text>
+                <FlatList
+                  data={currentRoom.playbackState.playlist}
+                  keyExtractor={(item, index) => `${item.id}-${index}`}
+                  renderItem={({ item, index }) => (
+                    <TouchableOpacity
+                      style={[
+                        styles.playlistItem,
+                        index === currentRoom.playbackState?.currentIndex && {
+                          backgroundColor: theme.primary + '20',
+                        },
+                      ]}
+                      onPress={() => canControlPlayback && changeSong(index)}
+                      disabled={!canControlPlayback}
+                    >
+                      <Text style={[styles.songName, { color: theme['primary-font'] }]} >
+                        {item.name}
+                      </Text>
+                      <Text style={[styles.singerName, { color: theme['secondary-font'] }]} >
+                        {item.singer}
+                      </Text>
+                    </TouchableOpacity>
+                  )}
+                  showsVerticalScrollIndicator={false}
+                />
+              </View>
             ) : (
               <View style={styles.emptyPlaylist}>
                 <Icon icon='playlist-music' size={48} color={theme['secondary-font']} />
@@ -455,6 +499,32 @@ const styles = StyleSheet.create({
   playlistContainer: {
     flex: 1,
     padding: 12,
+  },
+  currentSongSection: {
+    paddingBottom: 12,
+    borderBottomWidth: 1,
+    marginBottom: 12,
+  },
+  queueSection: {
+    marginBottom: 12,
+  },
+  playlistSection: {
+    flex: 1,
+  },
+  sectionTitle: {
+    fontSize: 12,
+    fontWeight: '600',
+    marginBottom: 8,
+    textTransform: 'uppercase',
+  },
+  currentSongItem: {
+    padding: 12,
+    borderRadius: 8,
+  },
+  queueItem: {
+    padding: 10,
+    borderRadius: 6,
+    marginBottom: 6,
   },
   playlistItem: {
     padding: 12,

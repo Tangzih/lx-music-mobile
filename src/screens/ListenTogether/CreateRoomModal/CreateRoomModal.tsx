@@ -24,6 +24,7 @@ const CreateRoomModal: React.FC<Props> = ({ componentId, onCreate }) => {
   const [maxMembers, setMaxMembers] = useState(10)
   const [isPublic, setIsPublic] = useState(true)
   const [allowRequest, setAllowRequest] = useState(true)
+  const [allowMemberControl, setAllowMemberControl] = useState(false)
   const [isLoading, setIsLoading] = useState(false)
 
   const handleClose = useCallback(() => {
@@ -41,6 +42,7 @@ const CreateRoomModal: React.FC<Props> = ({ componentId, onCreate }) => {
       maxMembers,
       isPublic,
       allowRequest,
+      allowMemberControl,
     }
 
     if (onCreate) {
@@ -144,6 +146,16 @@ const CreateRoomModal: React.FC<Props> = ({ componentId, onCreate }) => {
           <Switch
             value={allowRequest}
             onValueChange={setAllowRequest}
+            trackColor={{ false: theme.border, true: theme.primary }}
+            thumbColor='#fff'
+          />
+        </View>
+
+        <View style={[styles.formItem, styles.switchItem]}>
+          <Text style={[styles.label, { color: theme['primary-font'] }]} >允许成员控制播放</Text>
+          <Switch
+            value={allowMemberControl}
+            onValueChange={setAllowMemberControl}
             trackColor={{ false: theme.border, true: theme.primary }}
             thumbColor='#fff'
           />

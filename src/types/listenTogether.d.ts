@@ -21,6 +21,8 @@ declare namespace LX.ListenTogether {
     isPublic: boolean
     /** 是否允许点歌 */
     allowRequest: boolean
+    /** 是否允许成员控制播放 */
+    allowMemberControl: boolean
     /** 创建时间 */
     createdAt: number
     /** 当前播放状态 */
@@ -68,6 +70,10 @@ declare namespace LX.ListenTogether {
     playlist: LX.Music.MusicInfo[]
     /** 当前播放索引 */
     currentIndex: number
+    /** 已播放历史 */
+    playedHistory: LX.Music.MusicInfo[]
+    /** 待播放队列 */
+    queue: LX.Music.MusicInfo[]
   }
 
   /**
@@ -128,6 +134,7 @@ declare namespace LX.ListenTogether {
     maxMembers?: number
     isPublic?: boolean
     allowRequest?: boolean
+    allowMemberControl?: boolean
   }
 
   /**
