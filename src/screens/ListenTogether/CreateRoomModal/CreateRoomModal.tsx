@@ -51,7 +51,7 @@ const CreateRoomModal: React.FC<Props> = ({ componentId, onCreate }) => {
 
     setIsLoading(false)
     handleClose()
-  }, [name, description, maxMembers, isPublic, allowRequest, onCreate, handleClose])
+  }, [name, description, maxMembers, isPublic, allowRequest, allowMemberControl, onCreate, handleClose])
 
   return (
     <View style={[styles.container, { backgroundColor: theme.primary }]} >
