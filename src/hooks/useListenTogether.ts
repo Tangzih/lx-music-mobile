@@ -1,6 +1,5 @@
 import { useEffect, useRef, useCallback, useState } from 'react'
 import { ListenTogetherService } from '@/core/listenTogether'
-import { EventEmitter } from 'events'
 
 interface UseListenTogetherOptions {
   serverUrl: string
@@ -25,7 +24,6 @@ interface ListenTogetherState {
  */
 export const useListenTogether = (options: UseListenTogetherOptions) => {
   const serviceRef = useRef<ListenTogetherService | null>(null)
-  const eventRef = useRef<EventEmitter | null>(null)
 
   const [state, setState] = useState<ListenTogetherState>({
     isConnected: false,
@@ -67,7 +65,6 @@ export const useListenTogether = (options: UseListenTogetherOptions) => {
     return () => {
       serviceRef.current?.disconnect()
       serviceRef.current = null
-      eventRef.current = null
     }
   }, [options.serverUrl, options.userId])
 

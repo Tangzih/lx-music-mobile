@@ -1,4 +1,4 @@
-import { EventEmitter } from 'events'
+import Event from '@/event/Event'
 
 /**
  * 一起听 WebSocket 服务
@@ -11,7 +11,7 @@ interface WSOptions {
   heartbeatInterval?: number
 }
 
-export class ListenTogetherWebSocket extends EventEmitter {
+export class ListenTogetherWebSocket extends Event {
   private ws: WebSocket | null = null
   private url: string
   private reconnectInterval: number

@@ -1,5 +1,5 @@
 import { ListenTogetherWebSocket } from './websocket'
-import { EventEmitter } from 'events'
+import Event from '@/event/Event'
 
 /**
  * 一起听服务
@@ -13,7 +13,7 @@ interface ServiceOptions {
   userAvatar?: string
 }
 
-export class ListenTogetherService extends EventEmitter {
+export class ListenTogetherService extends Event {
   private ws: ListenTogetherWebSocket
   private userId: string
   private userName: string
