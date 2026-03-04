@@ -1,7 +1,6 @@
 import { useEffect, useRef, useCallback, useState } from 'react'
 import { ListenTogetherService } from '@/core/listenTogether'
 import { EventEmitter } from 'events'
-import { getUserName } from '@/utils/data'
 
 interface UseListenTogetherOptions {
   serverUrl: string
@@ -42,7 +41,7 @@ export const useListenTogether = (options: UseListenTogetherOptions) => {
   useEffect(() => {
     const initService = async () => {
       try {
-        const userName = options.userName ?? (await getUserName()) ?? '未知用户'
+        const userName = options.userName ?? '未知用户'
         serviceRef.current = new ListenTogetherService({
           serverUrl: options.serverUrl,
           userId: options.userId,
