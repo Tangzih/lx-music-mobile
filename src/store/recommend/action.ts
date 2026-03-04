@@ -1,5 +1,6 @@
 import recommendState from './state'
-import { fetchRecommendations } from '@/core/recommend'
+import { fetchRecommendations as fetchRecommendationsCore } from '@/core/recommend'
+import { addAILog } from './logAction'
 import settingState from '@/store/setting/state'
 import playerState from '@/store/player/state'
 import { saveData, getData, removeData } from '@/plugins/storage'
@@ -162,8 +163,10 @@ const getRecommendations = async(): Promise<void> => {
   setError(null)
 
   try {
-    // 1. 获取推荐歌曲
-    const recommendations = await fetchRecommendations(
+    // 1. 获取推荐歌曲（传入当前推荐列表和日志回调）
+    const recommendations = await fetchRecommendationsCore(
+      recommendState.recommendList, // 传入当前推荐列表
+      (log) => addAILog(log), // 日志回调
       (error) => setError(error),
       (status) => setProgress(status)
     )
@@ -209,8 +212,10 @@ const appendRecommendations = async(): Promise<void> => {
   setError(null)
 
   try {
-    // 1. 获取推荐歌曲
-    const recommendations = await fetchRecommendations(
+    // 1. 获取推荐歌曲（传入当前推荐列表和日志回调）
+    const recommendations = await fetchRecommendationsCore(
+      recommendState.recommendList, // 传入当前推荐列表
+      (log) => addAILog(log), // 日志回调
       (error) => setError(error),
       (status) => setProgress(status)
     )

@@ -5,9 +5,7 @@
 import { callRecommendAPI, type RecommendSong } from './api'
 import settingState from '@/store/setting/state'
 import { allMusicList, userLists, getListMusics } from '@/utils/listManage'
-import recommendState from '@/store/recommend/state'
 import { search } from '@/core/search/music'
-import { addAILog } from '@/store/recommend/logAction'
 import musicSdk from '@/utils/musicSdk'
 import listState from '@/store/list/state'
 import { LIST_IDS } from '@/config/constant'
@@ -121,18 +119,6 @@ export const getCurrentMusicIds = (): Set<string> => {
 }
 
 /**
- * 获取推荐列表中已有的歌曲ID（用于追加推荐时去重）
- * @returns 歌曲 ID 集合
- */
-export const getRecommendedMusicIds = (): Set<string> => {
-  const ids = new Set<string>()
-  for (const music of recommendState.recommendList) {
-    ids.add(music.id)
-  }
-  return ids
-}
-
-/**
  * 构建 AI 提示词
  * @param musicList 歌曲列表
  * @param recommendCount 推荐数量
@@ -140,6 +126,7 @@ export const getRecommendedMusicIds = (): Set<string> => {
  * @param existedSongs 已存在推荐列表的歌曲（用于排除重复）
  * @param failedSearchSongs 搜索失败的歌曲（用于告知AI这些找不到了）
  * @param maxTokens 最大token限制
+ * @param recommendedSongs 已推荐的歌曲列表（从外部传入，避免循环依赖）
  * @returns 提示词和token警告
  */
 export const buildPrompt = (
@@ -148,14 +135,11 @@ export const buildPrompt = (
   extraPrompt?: string,
   existedSongs?: Set<string>,
   failedSearchSongs?: Set<string>,
-  maxTokens?: number
+  maxTokens?: number,
+  recommendedSongs?: string[] // 改为从外部传入
 ): { prompt: string; tokenWarning?: string } => {
   let prompt: string
   let tokenWarning: string | undefined
-
-  // 获取已推荐的歌曲（全部）
-  const recommendedSongs = recommendState.recommendList
-    .map(m => `${m.name} - ${m.singer}`)
 
   if (musicList.length === 0) {
     prompt = '用户歌单为空，请随机推荐一些热门歌曲。'
@@ -167,7 +151,7 @@ ${musicList.map((song, index) => `${index + 1}. ${song}`).join('\n')}
   }
 
   // 添加已推荐歌曲信息，避免重复
-  if (recommendedSongs.length > 0) {
+  if (recommendedSongs && recommendedSongs.length > 0) {
     prompt += `
 
 注意：以下歌曲已经推荐过，请不要重复推荐：
@@ -202,13 +186,13 @@ ${failedList.map((song, index) => `${index + 1}. ${song}`).join('\n')}`
   }
 
   // Token限制检查和调整
-  if (maxTokens) {
+  if (maxTokens && recommendedSongs && recommendedSongs.length > 0) {
     const reservedForResponse = 500
     const availableTokens = maxTokens - reservedForResponse
     let currentTokens = estimateTokens(prompt)
 
     // 如果超出token限制，减少已推荐歌曲数量
-    if (currentTokens > availableTokens && recommendedSongs.length > 0) {
+    if (currentTokens > availableTokens) {
       // 计算需要保留的已推荐歌曲数量
       const basePromptWithoutRecommended = prompt.split('注意：以下歌曲已经推荐过')[0]
       const baseTokens = estimateTokens(basePromptWithoutRecommended)
@@ -490,11 +474,24 @@ export const searchRecommendSong = async(song: RecommendSong, retryCount = 0): P
 
 /**
  * 获取推荐歌曲
+ * @param recommendedList 已推荐的歌曲列表（从外部传入，避免循环依赖）
+ * @param onAILog AI日志回调（从外部传入，避免循环依赖）
  * @param onError 错误回调
  * @param onProgress 进度回调
  * @returns 推荐歌曲列表
  */
 export const fetchRecommendations = async(
+  recommendedList: LX.Music.MusicInfoOnline[], // 改为从外部传入
+  onAILog?: (log: {
+    model: string
+    prompt: string
+    response: string
+    requestSongs: string[]
+    recommendedSongs: string[]
+    existedSongs: string[]
+    failedSearchSongs: string[]
+    attempt: number
+  }) => void, // 改为回调函数
   onError?: (error: string) => void,
   onProgress?: (status: string) => void
 ): Promise<LX.Music.MusicInfoOnline[]> => {
@@ -521,10 +518,13 @@ export const fetchRecommendations = async(
 
     console.log('[推荐] 分析歌曲数量:', musicList.length)
 
-    // 2. 获取推荐列表中已有的歌曲 ID 用于去重（只过滤推荐列表中的重复）
-    const recommendedIds = getRecommendedMusicIds()
+    // 2. 获取推荐列表中已有的歌曲 ID 用于去重（从参数获取）
+    const recommendedIds = new Set<string>()
+    for (const music of recommendedList) {
+      recommendedIds.add(music.id)
+    }
+
     const searchedSongs = new Set<string>() // 已搜索过的歌曲（避免重复搜索）
-    const triedSongs = new Set<string>() // 已尝试推荐的歌曲（用于补充推荐时排除）
     const result: LX.Music.MusicInfoOnline[] = []
 
     // 3. 循环获取推荐直到达到目标数量
@@ -539,8 +539,11 @@ export const fetchRecommendations = async(
       // 计算还需要多少首
       const needCount = recommendCount - result.length
 
+      // 获取已推荐的歌曲列表（从参数获取）
+      const recommendedSongs = recommendedList.map(m => `${m.name} - ${m.singer}`)
+
       // 构建提示词（包含已存在的歌曲和搜索失败的歌曲信息）
-      const { prompt, tokenWarning } = buildPrompt(musicList, needCount, extraPrompt, existedSongs, failedSearchSongs, maxTokens)
+      const { prompt, tokenWarning } = buildPrompt(musicList, needCount, extraPrompt, existedSongs, failedSearchSongs, maxTokens, recommendedSongs)
 
       // 显示token警告（只显示一次）
       if (tokenWarning && !tokenWarningShown) {
@@ -550,18 +553,18 @@ export const fetchRecommendations = async(
 
       // 调用 AI API 获取推荐
       onProgress?.(`获取 AI 推荐中... (第${attempt}次，还需${needCount}首)`)
-      const { songs: recommendedSongs, response } = await callRecommendAPI(apiHost, apiKey, model, prompt, needCount)
+      const { songs: recommendedSongList, response } = await callRecommendAPI(apiHost, apiKey, model, prompt, needCount)
 
-      // 记录 AI 日志（每次重试都记录）
-      addAILog({
+      // 记录 AI 日志（通过回调）
+      onAILog?.({
         model,
         prompt,
         response,
         requestSongs: musicList,
-        recommendedSongs: recommendedSongs.map(s => `${s.name} - ${s.singer}${s.source ? ` [${s.source}]` : ''}`),
-        existedSongs: Array.from(existedSongs), // 已存在于推荐列表的歌曲
-        failedSearchSongs: Array.from(failedSearchSongs), // 搜索失败的歌曲
-        attempt, // 记录当前是第几次尝试
+        recommendedSongs: recommendedSongList.map(s => `${s.name} - ${s.singer}${s.source ? ` [${s.source}]` : ''}`),
+        existedSongs: Array.from(existedSongs),
+        failedSearchSongs: Array.from(failedSearchSongs),
+        attempt,
       })
 
       // 搜索推荐歌曲
@@ -570,7 +573,7 @@ export const fetchRecommendations = async(
       let searchFailedCount = 0
       let duplicateCount = 0
 
-      for (const song of recommendedSongs) {
+      for (const song of recommendedSongList) {
         const songKey = `${song.name} - ${song.singer}`.toLowerCase()
 
         // 去重检查（避免重复搜索）
@@ -602,7 +605,7 @@ export const fetchRecommendations = async(
         // 不再提前 break，处理完所有 AI 返回的歌曲
       }
 
-      console.log(`[推荐] 第${attempt}次尝试: AI返回${recommendedSongs.length}首, 找到${foundInThisRound}首, 搜索失败${searchFailedCount}首, 重复${duplicateCount}首, 当前共${result.length}首`)
+      console.log(`[推荐] 第${attempt}次尝试: AI返回${recommendedSongList.length}首, 找到${foundInThisRound}首, 搜索失败${searchFailedCount}首, 重复${duplicateCount}首, 当前共${result.length}首`)
 
       // 如果这轮没找到任何新歌曲，说明AI可能已经无法提供更多了
       if (foundInThisRound === 0) {
