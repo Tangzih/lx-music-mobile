@@ -11,7 +11,8 @@ import {
   Platform,
 } from 'react-native'
 import { Navigation } from 'react-native-navigation'
-import { useListenTogether, useCurrentRoom, useRoomMembers, useRoomMessages, useConnectionStatus, useIsInRoom } from '@/store/listenTogether'
+import { useListenTogether, useCurrentRoom, useRoomMembers, useRoomMessages, useConnectionStatus, useIsInRoom, useListenTogetherState } from '@/store/listenTogether'
+import { Alert } from 'react-native'
 import { useTheme } from '@/store/theme/hook'
 import Text from '@/components/common/Text'
 import { Icon } from '@/components/common/Icon'
@@ -71,9 +72,12 @@ const RoomDetail: React.FC<Props> = ({ componentId, roomId }) => {
   const theme = useTheme()
   const [messageInput, setMessageInput] = useState('')
   const [activeTab, setActiveTab] = useState<'chat' | 'members' | 'playlist'>('chat')
+  const [hasJoined, setHasJoined] = useState(false)
 
   const {
     leaveRoom,
+    dissolveRoom,
+    joinRoom,
     sendMessage,
     sendReaction,
     changeSong,
@@ -81,30 +85,79 @@ const RoomDetail: React.FC<Props> = ({ componentId, roomId }) => {
     pause,
     seek,
     uploadPlaylist,
-    addToPlaylist,
-    removeFromPlaylist,
     addToQueue,
   } = useListenTogether()
+  const ltState = useListenTogetherState()
   const currentRoom = useCurrentRoom()
   const members = useRoomMembers()
   const messages = useRoomMessages()
   const isConnected = useConnectionStatus()
-  const isInRoom = useIsInRoom()
+
+  // 判断当前用户是不是房主
+  const isHost = !!currentRoom && !!ltState.userId && currentRoom.hostId === ltState.userId
 
   useEffect(() => {
-    // 加入房间
-    if (isConnected && roomId) {
-      // joinRoom({ roomId })
+    // 连接就就加入房间（仅一次）
+    if (isConnected && roomId && !hasJoined) {
+      joinRoom({ roomId })
+      setHasJoined(true)
     }
+  }, [isConnected, roomId, hasJoined, joinRoom])
 
-    return () => {
-      leaveRoom()
+  // 监听房间解散事件
+  useEffect(() => {
+    if (ltState.error && ltState.error.includes('解散') && !ltState.isInRoom) {
+      Alert.alert('房间已解散', ltState.error || '房主已离开，房间已解散', [
+        {
+          text: '确定',
+          onPress: () => Navigation.pop(componentId),
+        },
+      ])
     }
-  }, [roomId, isConnected])
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [ltState.error, ltState.isInRoom])
 
   const handleBack = useCallback(() => {
+    // 当成员点返回时，退出房间
+    leaveRoom()
     Navigation.pop(componentId)
-  }, [componentId])
+  }, [componentId, leaveRoom])
+
+  const handleLeaveOrDissolve = useCallback(() => {
+    if (isHost) {
+      Alert.alert(
+        '解散房间',
+        '你是房主，离开后房间将解散，所有成员将被踢出。确定解散吗？',
+        [
+          { text: '取消', style: 'cancel' },
+          {
+            text: '解散房间',
+            style: 'destructive',
+            onPress: () => {
+              dissolveRoom()
+              Navigation.pop(componentId)
+            },
+          },
+        ]
+      )
+    } else {
+      Alert.alert(
+        '退出房间',
+        '确定退出当前房间？',
+        [
+          { text: '取消', style: 'cancel' },
+          {
+            text: '退出',
+            style: 'destructive',
+            onPress: () => {
+              leaveRoom()
+              Navigation.pop(componentId)
+            },
+          },
+        ]
+      )
+    }
+  }, [isHost, dissolveRoom, leaveRoom, componentId])
 
   const handleSendMessage = useCallback(() => {
     if (messageInput.trim()) {
@@ -180,8 +233,8 @@ const RoomDetail: React.FC<Props> = ({ componentId, roomId }) => {
         <Text style={[styles.navTitle, { color: theme['primary-font'] }]} >
           {currentRoom?.name ?? '房间'}
         </Text>
-        <TouchableOpacity onPress={handleSyncPlayback} style={styles.syncBtn}>
-          <Icon name='sync' size={20} color={theme.primary} />
+        <TouchableOpacity onPress={handleLeaveOrDissolve} style={styles.syncBtn}>
+          <Icon name='exit2' size={20} color={isHost ? theme.danger ?? '#f44' : theme['secondary-font']} />
         </TouchableOpacity>
       </View>
 

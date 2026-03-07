@@ -23,6 +23,8 @@ export interface ListenTogetherState {
   roomList: LX.ListenTogether.RoomInfo[]
   /** 我的房间列表 */
   myRooms: LX.ListenTogether.RoomInfo[]
+  /** 当前用户 ID */
+  userId: string | null
 }
 
 export const initialState: ListenTogetherState = {
@@ -36,6 +38,7 @@ export const initialState: ListenTogetherState = {
   error: null,
   roomList: [],
   myRooms: [],
+  userId: null,
 }
 
 let state = { ...initialState }

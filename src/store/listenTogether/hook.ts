@@ -3,7 +3,7 @@
  */
 
 import { useState, useEffect, useCallback, useRef } from 'react'
-import { getState } from './state'
+import { getState, setState as setGlobalState } from './state'
 import type { ListenTogetherState } from './state'
 import {
   setConnectionStatus,
@@ -33,6 +33,7 @@ export const initService = async (serverUrl: string, userId: string, userName?: 
   const actualUserName = userName || '未知用户'
 
   serviceConfig = { serverUrl, userId }
+  setGlobalState({ userId })
   serviceInstance = new ListenTogetherService({
     serverUrl,
     userId,
@@ -62,6 +63,16 @@ export const initService = async (serverUrl: string, userId: string, userName?: 
 
   serviceInstance.on('roomListUpdated', (rooms) => {
     setRoomList(rooms)
+  })
+
+  serviceInstance.on('roomDissolved', (data) => {
+    // 房间被解散：清空所有房间相关状态
+    setInRoom(false)
+    setCurrentRoom(null)
+    setMembers([])
+    clearMessages()
+    // data.reason 可用于 UI 提示
+    setError(data.reason || '房间已解散')
   })
 
   serviceInstance.on('playbackStateUpdated', (state) => {
@@ -232,6 +243,17 @@ export const useListenTogether = () => {
     serviceInstance.getRoomList()
   }, [])
 
+  // 房主专用：主动解散房间
+  const dissolveRoom = useCallback(() => {
+    if (!serviceInstance) return
+    // 房主发送 leave_room，服务端会广播 room_dissolved 给其他成员
+    serviceInstance.leaveRoom()
+    setInRoom(false)
+    setCurrentRoom(null)
+    setMembers([])
+    clearMessages()
+  }, [])
+
   const joinRoom = useCallback((params: LX.ListenTogether.JoinRoomParams) => {
     if (!serviceInstance) {
       console.warn('Service not initialized')
@@ -353,6 +375,7 @@ export const useListenTogether = () => {
     createRoom,
     joinRoom,
     leaveRoom,
+    dissolveRoom,
     refreshRoomList,
     sendMessage,
     sendReaction,

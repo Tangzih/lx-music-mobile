@@ -63,6 +63,15 @@ export class ListenTogetherService extends Event {
       this.emit('roomListUpdated', data.rooms)
     })
 
+    // 房间被解散（房主离开）
+    this.ws.on('room_dissolved', (data: {
+      roomId: string
+      reason: string
+    }) => {
+      this.currentRoomId = null
+      this.emit('roomDissolved', data)
+    })
+
     // 播放状态更新
     this.ws.on('playback_state', (data: {
       state: LX.ListenTogether.PlaybackState
