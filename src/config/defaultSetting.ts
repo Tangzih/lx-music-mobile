@@ -78,6 +78,19 @@ const defaultSetting: LX.AppSetting = {
   'theme.hideBgDark': false,
   'theme.dynamicBg': false,
   'theme.fontShadow': false,
+
+  'recommend.apiHost': '',
+  'recommend.apiKey': '',
+  'recommend.analyzeCount': 20,
+  'recommend.recommendCount': 10,
+  'recommend.model': 'gpt-3.5-turbo',
+  'recommend.enableLog': false,
+  'recommend.continuousRecommend': false,
+  'recommend.extraPrompt': '',
+  'recommend.maxRetries': 5,
+  'recommend.maxTokens': 4000,
+  'recommend.autoClear': false,
+  'recommend.autoClearHours': 24,
 }
 
 

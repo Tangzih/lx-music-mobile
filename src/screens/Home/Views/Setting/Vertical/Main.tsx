@@ -11,6 +11,7 @@ import Backup from '../settings/Backup'
 import Other from '../settings/Other'
 import Version from '../settings/Version'
 import About from '../settings/About'
+import Recommend from '../settings/Recommend'
 import { createStyle } from '@/utils/tools'
 import { SETTING_SCREENS, type SettingScreenIds } from '../Main'
 
@@ -38,6 +39,7 @@ const ListItem = memo(({
     case 'sync': return <Sync />
     case 'backup': return <Backup />
     case 'other': return <Other />
+    case 'recommend': return <Recommend />
     case 'version': return <Version />
     case 'about': return <About />
     case 'basic': return <Basic />

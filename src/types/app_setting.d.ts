@@ -350,6 +350,66 @@ declare global {
        * 是否启用同步
        */
       'sync.enable': boolean
+
+      /**
+       * 推荐歌曲 API 地址
+       */
+      'recommend.apiHost': string
+
+      /**
+       * 推荐歌曲 API 密钥
+       */
+      'recommend.apiKey': string
+
+      /**
+       * 单次分析歌曲数量
+       */
+      'recommend.analyzeCount': number
+
+      /**
+       * 推荐歌曲数量
+       */
+      'recommend.recommendCount': number
+
+      /**
+       * 推荐歌曲 AI 模型
+       */
+      'recommend.model': string
+
+      /**
+       * 是否启用 AI 日志
+       */
+      'recommend.enableLog': boolean
+
+      /**
+       * 是否启用持续推荐（播放到最后一首后自动继续分析）
+       */
+      'recommend.continuousRecommend': boolean
+
+      /**
+       * 附加提示词
+       */
+      'recommend.extraPrompt': string
+
+      /**
+       * 最大重试次数（推荐数量不足时自动重试）
+       */
+      'recommend.maxRetries': number
+
+      /**
+       * 最大Token数量限制
+       */
+      'recommend.maxTokens': number
+
+      /**
+       * 是否启用定期清空推荐列表
+       */
+      'recommend.autoClear': boolean
+
+      /**
+       * 定期清空推荐列表的时间间隔（小时），0表示禁用
+       */
+      'recommend.autoClearHours': number
     }
   }
 }
