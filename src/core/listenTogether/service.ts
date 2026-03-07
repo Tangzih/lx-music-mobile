@@ -120,13 +120,31 @@ export class ListenTogetherService extends Event {
     })
 
     // 错误信息
-    this.ws.on('error', (data: {
+    this.ws.on('error_msg', (data: {
       code: string
       message: string
     }) => {
       this.emit('serverError', data)
     })
-  }
+
+    // 某成员无法获取音源，向我请求提供 URL
+    this.ws.on('url_requested', (data: {
+      songId: string
+      musicInfo: LX.Music.MusicInfo
+      requesterId: string
+    }) => {
+      this.emit('urlRequested', data)
+    })
+
+    // 收到其他成员回复的音源 URL
+    this.ws.on('url_response', (data: {
+      songId: string
+      url: string
+      fromUserId: string
+    }) => {
+      this.emit('urlResponseReceived', data)
+    })
+  }  // end setupWebSocketListeners
 
   /**
    * 连接到服务器
@@ -306,6 +324,32 @@ export class ListenTogetherService extends Event {
       roomId: this.currentRoomId,
       userId: this.userId,
       emoji,
+    })
+  }
+
+  /**
+   * 向房间内其他成员请求音源 URL
+   * 当自己无法获取音源时调用
+   */
+  requestUrl(songId: string, musicInfo: LX.Music.MusicInfo): void {
+    this.ws.send('request_url', {
+      songId,
+      musicInfo,
+      requesterId: this.userId,
+    })
+  }
+
+  /**
+   * 回复某成员的音源请求
+   * @param requesterId 请求方的 userId
+   * @param songId 歌曲标识
+   * @param url 音源链接
+   */
+  respondUrl(requesterId: string, songId: string, url: string): void {
+    this.ws.send('url_response', {
+      requesterId,
+      songId,
+      url,
     })
   }
 

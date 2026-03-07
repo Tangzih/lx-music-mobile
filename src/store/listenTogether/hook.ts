@@ -122,6 +122,45 @@ export const initService = async (serverUrl: string, userId: string, userName?: 
     setError(error.message)
   })
 
+  /**
+   * 音源回退 - 别人向我请求音源链接
+   * 如果我本地当前播放的歌和对方请求的一致，将已缓存的播放 URL 回复给他
+   */
+  serviceInstance.on('urlRequested', async (data: {
+    songId: string
+    musicInfo: LX.Music.MusicInfo
+    requesterId: string
+  }) => {
+    const playerState = (await import('@/store/player/state')).default
+    const currentMusicInfo = playerState.playMusicInfo.musicInfo
+    if (!currentMusicInfo) return
+    // 检查对方请求的歌曲 ID 是否和我在播的一致
+    const myId = currentMusicInfo.id
+    if (myId !== data.songId) return
+    // 拿我本地当前播放链接（来自播放器 state）
+    const url = playerState.progress?.url ?? (currentMusicInfo as any)._url
+    if (!url) return
+    serviceInstance?.respondUrl(data.requesterId, data.songId, url)
+  })
+
+  /**
+   * 音源回退 - 收到他人回复的音源 URL
+   * 直接用这条 URL 播放，不走正常的 getMusicUrl 流程，不跳歌，不影响进度同步
+   */
+  serviceInstance.on('urlResponseReceived', async (data: {
+    songId: string
+    url: string
+    fromUserId: string
+  }) => {
+    const { setResource } = await import('@/plugins/player')
+    const playerState = (await import('@/store/player/state')).default
+    const currentMusicInfo = playerState.playMusicInfo.musicInfo
+    if (!currentMusicInfo || currentMusicInfo.id !== data.songId) return
+    // 用回退 URL 设置资源，保持当前进度
+    setResource(currentMusicInfo, data.url, playerState.progress.nowPlayTime)
+    console.log(`[一起听] 使用来自 ${data.fromUserId} 的音源回退 URL`)
+  })
+
   // 连接服务器
   try {
     setLoading(true)

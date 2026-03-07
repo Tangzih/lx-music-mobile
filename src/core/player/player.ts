@@ -145,6 +145,23 @@ export const setMusicUrl = (musicInfo: LX.Music.MusicInfo | LX.Download.ListItem
     console.log(err)
     setStatusText(err.message as string)
     global.app_event.error()
+
+    // ── 一起听音源回退 ──────────────────────────────────────────
+    // 在房间里获取音源失败时：不跳歌，改为向其他成员请求音源
+    if (isInRoom()) {
+      const mInfo = 'progress' in musicInfo ? musicInfo.metadata.musicInfo : musicInfo
+      setStatusText('无法获取音源，正在向其他成员请求…')
+      // 动态引入避免循环依赖
+      void import('@/store/listenTogether/hook').then(({ getService }) => {
+        const service = getService()
+        if (service) {
+          service.requestUrl(mInfo.id, mInfo)
+        }
+      })
+      // 不调用 addDelayNextTimeout()，维持进度条走动但不换歌
+      return
+    }
+    // ──────────────────────────────────────────────────────────
     addDelayNextTimeout()
   }).finally(() => {
     if (musicInfo === playerState.playMusicInfo.musicInfo) {
