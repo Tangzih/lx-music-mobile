@@ -26,6 +26,9 @@ export enum COMPONENT_IDS {
   playDetail = 'playDetail',
   songlistDetail = 'songlistDetail',
   comment = 'comment',
+  listenTogetherEntry = 'listenTogetherEntry',
+  listenTogetherRoomList = 'listenTogetherRoomList',
+  listenTogetherRoomDetail = 'listenTogetherRoomDetail',
 }
 
 export enum NAV_SHEAR_NATIVE_IDS {

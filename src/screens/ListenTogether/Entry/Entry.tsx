@@ -12,6 +12,8 @@ import { useTheme } from '@/store/theme/hook'
 import { useStatusbarHeight } from '@/store/common/hook'
 import { useListenTogether, useConnectionStatus } from '@/store/listenTogether'
 import { initService, disconnectService, getService } from '@/store/listenTogether/hook'
+import { setComponentId } from '@/core/common'
+import { COMPONENT_IDS } from '@/config/constant'
 import Text from '@/components/common/Text'
 import { Icon } from '@/components/common/Icon'
 import Button from '@/components/common/Button'
@@ -40,9 +42,11 @@ const Entry: React.FC<Props> = ({ componentId }) => {
 
   // Load server history from storage (placeholder - would use AsyncStorage in production)
   useEffect(() => {
+    setComponentId(COMPONENT_IDS.listenTogetherEntry, componentId)
     // TODO: Load from AsyncStorage
     // For now, use empty array
     setServerHistory([])
+  // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [])
 
   const handleConnect = useCallback(async () => {
