@@ -30,6 +30,20 @@ const Content = () => {
     }
   }, [])
 
+  // 修复从其他屏幕返回后 DrawerLayoutAndroid 遮罩层状态不正确的问题
+  useEffect(() => {
+    const handleComponentIdsUpdated = () => {
+      // 当页面重新变为可见时，确保菜单关闭
+      drawer.current?.closeDrawer()
+    }
+
+    global.state_event.on('componentIdsUpdated', handleComponentIdsUpdated)
+
+    return () => {
+      global.state_event.off('componentIdsUpdated', handleComponentIdsUpdated)
+    }
+  }, [])
+
   const navigationView = () => <DrawerNav />
   // console.log('render drawer content')
 
