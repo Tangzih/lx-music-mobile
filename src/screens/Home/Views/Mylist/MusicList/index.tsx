@@ -15,6 +15,8 @@ import ListMusicSearch, { type ListMusicSearchType } from './ListMusicSearch'
 import MusicPositionModal, { type MusicPositionModalType } from './MusicPositionModal'
 import MetadataEditModal, { type MetadataEditType, type MetadataEditProps } from '@/components/MetadataEditModal'
 import MusicToggleModal, { type MusicToggleModalType } from './MusicToggleModal'
+import { canAddToRoomPlaylist } from '@/core/listenTogether/guard'
+import { getService } from '@/store/listenTogether/hook'
 
 
 export default () => {
@@ -118,6 +120,14 @@ export default () => {
     handleUpdateMusicInfo(selectedInfoRef.current.listId, selectedInfoRef.current.musicInfo, info)
   }, [])
 
+  const handleAddToListenTogether = useCallback((info: SelectInfo) => {
+    const service = getService()
+    if (!service) return
+    // 支持单首或多首选中
+    const songs = info.selectedList.length ? info.selectedList : [info.musicInfo]
+    songs.forEach(song => service.addToQueue(song))
+  }, [])
+
 
   return (
     <View style={styles.container}>
@@ -153,6 +163,7 @@ export default () => {
         onUpdatePosition={(info, postion) => { handleUpdateMusicPosition(postion, info.listId, info.musicInfo, info.selectedList, hancelExitSelect) }} />
       <ListMenu
         ref={listMenuRef}
+        canAddToListenTogether={canAddToRoomPlaylist()}
         onPlay={info => { handlePlay(info.listId, info.index) }}
         onPlayLater={info => { hancelExitSelect(); handlePlayLater(info.listId, info.musicInfo, info.selectedList, hancelExitSelect) }}
         onRemove={info => { hancelExitSelect(); handleRemove(info.listId, info.musicInfo, info.selectedList, hancelExitSelect) }}
@@ -164,6 +175,7 @@ export default () => {
         onEditMetadata={handleEditMetadata}
         onChangePosition={info => musicPositionModalRef.current?.show(info)}
         onToggleSource={info => musicToggleModalRef.current?.show(info)}
+        onAddToListenTogether={handleAddToListenTogether}
       />
       <MetadataEditModal
         ref={metadataEditTypeRef}

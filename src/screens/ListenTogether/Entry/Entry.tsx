@@ -320,12 +320,6 @@ const Entry: React.FC<Props> = ({ componentId }) => {
           </Button>
         </View>
 
-        {/* Placeholder for future features */}
-        <View style={styles.placeholderSection}>
-          <Text style={[styles.placeholderText, { color: theme['secondary-font'] }]}>
-            局域网/内网穿透模式即将推出
-          </Text>
-        </View>
       </ScrollView>
     </View>
   )

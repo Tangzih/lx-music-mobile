@@ -28,6 +28,7 @@ import { checkIgnoringBatteryOptimization, checkNotificationPermission, debounce
 import { LIST_IDS } from '@/config/constant'
 import { addListMusics, removeListMusics } from '@/core/list'
 import { addDislikeInfo } from '@/core/dislikeList'
+import { canControlPlayback, isInRoom } from '@/core/listenTogether/guard'
 
 // import { checkMusicFileAvailable } from '@renderer/utils/music'
 
@@ -266,11 +267,14 @@ const handlePlay = async() => {
 }
 
 /**
- * 播放列表内歌曲
- * @param listId 列表id
- * @param id 歌曲id
+ * 播放列表内歌曲（按 ID）
+ * 进房间中若无权限则拦截
  */
 export const playListById = async(listId: string, id: string) => {
+  if (isInRoom() && !canControlPlayback()) {
+    global.app_event.toast?.(global.i18n.t?.('listen_together__no_permission') ?? '当前在一起听房间中，无播放控制权限')
+    return
+  }
   const prevListId = playerState.playInfo.playerListId
   setPlayListId(listId)
   const musicInfo = getList(listId).find(m => m.id == id)
@@ -282,11 +286,14 @@ export const playListById = async(listId: string, id: string) => {
 }
 
 /**
- * 播放列表内歌曲
- * @param listId 列表id
- * @param index 播放的歌曲位置
+ * 播放列表内歌曲（按 index）
+ * 进房间中若无权限则拦截
  */
 export const playList = async(listId: string, index: number) => {
+  if (isInRoom() && !canControlPlayback()) {
+    global.app_event.toast?.(global.i18n.t?.('listen_together__no_permission') ?? '当前在一起听房间中，无播放控制权限')
+    return
+  }
   const prevListId = playerState.playInfo.playerListId
   setPlayListId(listId)
   setPlayMusicInfo(listId, getList(listId)[index])
@@ -404,11 +411,14 @@ const handlePlayNext = async(playMusicInfo: LX.Player.PlayMusicInfo) => {
   await handlePlay()
 }
 /**
- * 下一曲
- * @param isAutoToggle 是否自动切换
- * @returns
+ * 下一曲（外部触发）
+ * 进房间中若无权限则拦截
  */
 export const playNext = async(isAutoToggle = false): Promise<void> => {
+  if (!isAutoToggle && isInRoom() && !canControlPlayback()) {
+    global.app_event.toast?.(global.i18n.t?.('listen_together__no_permission') ?? '当前在一起听房间中，无播放控制权限')
+    return
+  }
   if (playerState.tempPlayList.length) { // 如果稍后播放列表存在歌曲则直接播放改列表的歌曲
     const playMusicInfo = playerState.tempPlayList[0]
     removeTempPlayList(0)
@@ -505,9 +515,14 @@ export const playNext = async(isAutoToggle = false): Promise<void> => {
 }
 
 /**
- * 上一曲
+ * 上一曲（外部触发）
+ * 进房间中若无权限则拦截
  */
 export const playPrev = async(isAutoToggle = false): Promise<void> => {
+  if (!isAutoToggle && isInRoom() && !canControlPlayback()) {
+    global.app_event.toast?.(global.i18n.t?.('listen_together__no_permission') ?? '当前在一起听房间中，无播放控制权限')
+    return
+  }
   const playMusicInfo = playerState.playMusicInfo
   if (playMusicInfo.musicInfo == null) return handleToggleStop()
   const playInfo = playerState.playInfo

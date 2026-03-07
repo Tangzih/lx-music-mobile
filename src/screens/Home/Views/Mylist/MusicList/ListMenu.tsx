@@ -25,6 +25,9 @@ export interface ListMenuProps {
   onMusicSourceDetail: (selectInfo: SelectInfo) => void
   onDislikeMusic: (selectInfo: SelectInfo) => void
   onRemove: (selectInfo: SelectInfo) => void
+  onAddToListenTogether?: (selectInfo: SelectInfo) => void
+  /** 是否在房间中且有权限 */
+  canAddToListenTogether?: boolean
 }
 export interface ListMenuType {
   show: (selectInfo: SelectInfo, position: Position) => void
@@ -76,6 +79,12 @@ export default forwardRef<ListMenuType, ListMenuProps>((props, ref) => {
       { action: 'remove', label: t('delete') },
     ]
     if (musicInfo.source == 'local') menu.splice(5, 0, { action: 'editMetadata', disabled: !edit_metadata, label: t('edit_metadata') })
+    // 添加到一起听（若有权限则可用，否则置灰）
+    menu.push({
+      action: 'addToListenTogether',
+      label: '添加到一起听',
+      disabled: !props.canAddToListenTogether,
+    })
     setMenus(menu)
     void Promise.all([hasEditMetadata(musicInfo)]).then(([_edit_metadata]) => {
       // console.log(_edit_metadata)
@@ -139,6 +148,9 @@ export default forwardRef<ListMenuType, ListMenuProps>((props, ref) => {
         break
       case 'remove':
         props.onRemove(selectInfo)
+        break
+      case 'addToListenTogether':
+        props.onAddToListenTogether?.(selectInfo)
         break
       default:
         break
