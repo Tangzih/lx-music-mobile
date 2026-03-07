@@ -1,4 +1,4 @@
-import React, { useCallback, useEffect, useState } from 'react'
+import React, { useCallback, useState } from 'react'
 import {
   View,
   StyleSheet,
@@ -7,8 +7,10 @@ import {
   TouchableOpacity,
 } from 'react-native'
 import { Navigation } from 'react-native-navigation'
-import { useListenTogether, useRoomList, useMyRooms } from '@/store/listenTogether'
+import { useListenTogether, useRoomList } from '@/store/listenTogether'
 import { useTheme } from '@/store/theme/hook'
+import { useStatusbarHeight } from '@/store/common/hook'
+import { disconnectService } from '@/store/listenTogether/hook'
 import Text from '@/components/common/Text'
 import { Icon } from '@/components/common/Icon'
 import Button from '@/components/common/Button'
@@ -74,16 +76,15 @@ interface Props {
 
 const RoomList: React.FC<Props> = ({ componentId }) => {
   const theme = useTheme()
+  const statusBarHeight = useStatusbarHeight()
   const { isConnected, createRoom, joinRoom } = useListenTogether()
   const roomList = useRoomList()
-  const myRooms = useMyRooms()
 
   const [refreshing, setRefreshing] = useState(false)
-  const [activeTab, setActiveTab] = useState<'recommend' | 'my' | 'joined'>('recommend')
 
   const handleRefresh = useCallback(async () => {
     setRefreshing(true)
-    // 这里应该调用刷新房间列表的方法
+    // TODO: call refresh room list method
     // await refreshRoomList()
     setRefreshing(false)
   }, [])
@@ -116,68 +117,52 @@ const RoomList: React.FC<Props> = ({ componentId }) => {
     })
   }, [componentId])
 
+  const handleDisconnect = useCallback(() => {
+    disconnectService()
+    Navigation.pop(componentId)
+  }, [componentId])
+
+  const handleBack = useCallback(() => {
+    Navigation.pop(componentId)
+  }, [componentId])
+
   const renderRoomItem = useCallback(({ item }: { item: LX.ListenTogether.RoomInfo }) => (
     <RoomListItem room={item} onPress={() => handleJoinRoom(item)} />
   ), [handleJoinRoom])
 
-  const getCurrentList = () => {
-    switch (activeTab) {
-      case 'recommend':
-        return roomList
-      case 'my':
-        return myRooms
-      case 'joined':
-        // 应该返回已加入的房间
-        return []
-      default:
-        return roomList
-    }
-  }
-
   return (
-    <View style={[styles.container, { backgroundColor: theme.primary }]} >
-      {/* 头部 */}
-      <View style={styles.header}>
-        <Text style={[styles.title, { color: theme['primary-font'] }]} >一起听</Text>
+    <View style={[styles.container, { backgroundColor: theme.primary }]}>
+      {/* Header */}
+      <View style={[styles.header, { paddingTop: statusBarHeight }]}>
+        <TouchableOpacity style={styles.backBtn} onPress={handleBack}>
+          <Icon name="arrow-left" size={24} color={theme['primary-font']} />
+        </TouchableOpacity>
+        <View style={styles.headerCenter}>
+          <Text style={[styles.title, { color: theme['primary-font'] }]}>房间列表</Text>
+        </View>
+        <TouchableOpacity style={styles.disconnectBtn} onPress={handleDisconnect}>
+          <Icon name="exit2" size={22} color={theme['primary-font']} />
+        </TouchableOpacity>
+      </View>
+
+      {/* Create Room Button */}
+      <View style={styles.actionBar}>
         <Button
           onPress={handleCreateRoom}
           disabled={!isConnected}
-          style={[styles.createBtn, { backgroundColor: isConnected ? theme.success : theme.disabled }]}
+          style={[
+            styles.createBtn,
+            { backgroundColor: isConnected ? theme.success : theme.disabled },
+          ]}
         >
+          <Icon name="plus" size={18} color="#fff" />
           <Text style={styles.createBtnText}>创建房间</Text>
         </Button>
       </View>
 
-      {/* 标签栏 */}
-      <View style={styles.tabBar}>
-        {[
-          { key: 'recommend' as const, label: '推荐' },
-          { key: 'my' as const, label: '我的房间' },
-          { key: 'joined' as const, label: '已加入' },
-        ].map((tab) => (
-          <TouchableOpacity
-            key={tab.key}
-            style={[
-              styles.tabItem,
-              activeTab === tab.key && { borderBottomColor: theme.primary },
-            ]}
-            onPress={() => setActiveTab(tab.key)}
-          >
-            <Text
-              style={[
-                styles.tabText,
-                { color: activeTab === tab.key ? theme['primary-font'] : theme['secondary-font'] },
-              ]}
-            >
-              {tab.label}
-            </Text>
-          </TouchableOpacity>
-        ))}
-      </View>
-
-      {/* 房间列表 */}
+      {/* Room List */}
       <FlatList
-        data={getCurrentList()}
+        data={roomList}
         keyExtractor={(item) => item.id}
         renderItem={renderRoomItem}
         contentContainerStyle={styles.listContainer}
@@ -192,8 +177,11 @@ const RoomList: React.FC<Props> = ({ componentId }) => {
         ListEmptyComponent={
           <View style={styles.emptyContainer}>
             <Icon name='music-off' size={48} color={theme['secondary-font']} />
-            <Text style={[styles.emptyText, { color: theme['secondary-font'] }]} >
+            <Text style={[styles.emptyText, { color: theme['secondary-font'] }]}>
               暂无房间
+            </Text>
+            <Text style={[styles.emptyHint, { color: theme['secondary-font'] }]}>
+              点击上方"创建房间"按钮创建一个新房间
             </Text>
           </View>
         }
@@ -209,39 +197,39 @@ const styles = StyleSheet.create({
   header: {
     flexDirection: 'row',
     alignItems: 'center',
-    justifyContent: 'space-between',
     paddingHorizontal: 16,
-    paddingVertical: 12,
+    paddingBottom: 12,
+  },
+  backBtn: {
+    padding: 8,
+  },
+  headerCenter: {
+    flex: 1,
+    alignItems: 'center',
   },
   title: {
-    fontSize: 20,
+    fontSize: 18,
     fontWeight: 'bold',
   },
-  createBtn: {
+  disconnectBtn: {
+    padding: 8,
+  },
+  actionBar: {
     paddingHorizontal: 16,
     paddingVertical: 8,
-    borderRadius: 20,
+  },
+  createBtn: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'center',
+    paddingVertical: 12,
+    borderRadius: 8,
   },
   createBtnText: {
     color: '#fff',
-    fontSize: 14,
+    fontSize: 16,
     fontWeight: '500',
-  },
-  tabBar: {
-    flexDirection: 'row',
-    borderBottomWidth: 1,
-    borderBottomColor: 'rgba(0,0,0,0.1)',
-  },
-  tabItem: {
-    flex: 1,
-    paddingVertical: 12,
-    alignItems: 'center',
-    borderBottomWidth: 2,
-    borderBottomColor: 'transparent',
-  },
-  tabText: {
-    fontSize: 14,
-    fontWeight: '500',
+    marginLeft: 8,
   },
   listContainer: {
     padding: 12,
@@ -297,8 +285,13 @@ const styles = StyleSheet.create({
     paddingVertical: 60,
   },
   emptyText: {
-    fontSize: 14,
+    fontSize: 16,
     marginTop: 12,
+  },
+  emptyHint: {
+    fontSize: 13,
+    marginTop: 8,
+    opacity: 0.7,
   },
 })
 

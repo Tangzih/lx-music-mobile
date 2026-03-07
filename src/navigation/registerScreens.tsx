@@ -10,6 +10,7 @@ import {
   RoomList,
   RoomDetail,
   CreateRoomModal,
+  Entry,
   // Setting,
 } from '@/screens'
 import { Provider } from '@/store/Provider'
@@ -29,6 +30,7 @@ import {
   ROOM_DETAIL_SCREEN,
   CREATE_ROOM_MODAL,
 } from '@/screens/ListenTogether/RoomList/screenNames'
+import { LISTEN_TOGETHER_ENTRY_SCREEN } from '@/screens/ListenTogether/Entry/screenNames'
 import VersionModal from './components/VersionModal'
 import PactModal from './components/PactModal'
 import SyncModeModal from './components/SyncModeModal'
@@ -58,6 +60,7 @@ export default () => {
   // Navigation.registerComponent(SETTING_SCREEN, () => WrappedComponent(Setting))
 
   // 一起听屏幕
+  Navigation.registerComponent(LISTEN_TOGETHER_ENTRY_SCREEN, () => WrappedComponent(Entry))
   Navigation.registerComponent(ROOM_LIST_SCREEN, () => WrappedComponent(RoomList))
   Navigation.registerComponent(ROOM_DETAIL_SCREEN, () => WrappedComponent(RoomDetail))
   Navigation.registerComponent(CREATE_ROOM_MODAL, () => WrappedComponent(CreateRoomModal))

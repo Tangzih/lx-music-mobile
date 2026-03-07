@@ -11,6 +11,7 @@ import {
 import {
   ROOM_LIST_SCREEN,
 } from '@/screens/ListenTogether/RoomList/screenNames'
+import { LISTEN_TOGETHER_ENTRY_SCREEN } from '@/screens/ListenTogether/Entry/screenNames'
 
 import themeState from '@/store/theme/state'
 import { NAV_SHEAR_NATIVE_IDS } from '@/config/constant'
@@ -397,6 +398,57 @@ export function pushRoomListScreen(componentId: string) {
     void Navigation.push(componentId, {
       component: {
         name: ROOM_LIST_SCREEN,
+        options: {
+          topBar: {
+            visible: false,
+            height: 0,
+            drawBehind: false,
+          },
+          statusBar: {
+            drawBehind: true,
+            visible: true,
+            style: getStatusBarStyle(theme.isDark),
+            backgroundColor: 'transparent',
+          },
+          navigationBar: {
+            backgroundColor: theme['c-content-background'],
+          },
+          layout: {
+            componentBackgroundColor: theme['c-content-background'],
+          },
+          animations: {
+            push: {
+              content: {
+                translationX: {
+                  from: windowSizeTools.getSize().width,
+                  to: 0,
+                  duration: 300,
+                },
+              },
+            },
+            pop: {
+              content: {
+                translationX: {
+                  from: 0,
+                  to: windowSizeTools.getSize().width,
+                  duration: 300,
+                },
+              },
+            },
+          },
+        },
+      },
+    })
+  })
+}
+
+export function pushListenTogetherEntryScreen(componentId: string) {
+  requestAnimationFrame(() => {
+    const theme = themeState.theme
+
+    void Navigation.push(componentId, {
+      component: {
+        name: LISTEN_TOGETHER_ENTRY_SCREEN,
         options: {
           topBar: {
             visible: false,

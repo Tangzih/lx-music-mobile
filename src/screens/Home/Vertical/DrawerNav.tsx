@@ -118,7 +118,7 @@ export default memo(() => {
         return
       case 'nav_listen_together':
         global.app_event.changeMenuVisible(false)
-        navigations.pushRoomListScreen(commonState.componentIds.home!)
+        navigations.pushListenTogetherEntryScreen(commonState.componentIds.home!)
         return
     }
 
