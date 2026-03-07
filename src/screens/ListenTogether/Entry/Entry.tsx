@@ -18,6 +18,7 @@ import Text from '@/components/common/Text'
 import { Icon } from '@/components/common/Icon'
 import Button from '@/components/common/Button'
 import { ROOM_LIST_SCREEN } from '../RoomList/screenNames'
+import { ROOM_DETAIL_SCREEN } from '../RoomDetail/screenNames'
 import { LISTEN_TOGETHER_ENTRY_SCREEN } from './screenNames'
 
 interface Props {
@@ -37,6 +38,10 @@ const Entry: React.FC<Props> = ({ componentId }) => {
   const [connecting, setConnecting] = useState(false)
   const [showHistory, setShowHistory] = useState(false)
   const [serverHistory, setServerHistory] = useState<string[]>([])
+
+  const [localName, setLocalName] = useState('')
+  const [localPort, setLocalPort] = useState('2333')
+  const [hosting, setHosting] = useState(false)
 
   const inputRef = useRef<TextInput>(null)
 
@@ -68,19 +73,35 @@ const Entry: React.FC<Props> = ({ componentId }) => {
     try {
       // Generate a unique user ID (in production, this should come from user settings)
       const userId = `user_${Date.now()}`
-      await initService(serverAddress.trim(), userId)
+      
+      let address = serverAddress.trim()
+      // If user inputs IP:PORT without tcp:// scheme, assume it's TCP
+      if (/^[\d\.]+:\d+$/.test(address)) {
+        address = `tcp://${address}`
+      }
+
+      await initService(address, userId)
 
       // Save to history
-      const newHistory = [serverAddress.trim(), ...serverHistory.filter(s => s !== serverAddress.trim())].slice(0, 5)
+      const newHistory = [address, ...serverHistory.filter(s => s !== address)].slice(0, 5)
       setServerHistory(newHistory)
       // TODO: Save to AsyncStorage
 
-      // Navigate to room list
-      Navigation.push(componentId, {
-        component: {
-          name: ROOM_LIST_SCREEN,
-        },
-      })
+      if (address.startsWith('tcp://')) {
+        // Direct mobile room, join directly and skip room list
+        const service = getService()
+        if (service) {
+          service.joinRoom({ roomId: 'local_room' })
+        }
+        Navigation.push(componentId, {
+          component: { name: ROOM_DETAIL_SCREEN },
+        })
+      } else {
+        // Standard server, go to room list
+        Navigation.push(componentId, {
+          component: { name: ROOM_LIST_SCREEN },
+        })
+      }
     } catch (err) {
       Alert.alert('连接失败', err instanceof Error ? err.message : '无法连接到服务器')
     } finally {
@@ -93,9 +114,43 @@ const Entry: React.FC<Props> = ({ componentId }) => {
     setServerAddress('')
   }, [])
 
-  const handleCreateLocalRoom = useCallback(() => {
-    Alert.alert('提示', '此功能开发中，敬请期待')
-  }, [])
+  const handleCreateLocalRoom = useCallback(async () => {
+    if (!localName.trim()) {
+      Alert.alert('提示', '请输入房主名字')
+      return
+    }
+    const portNum = parseInt(localPort, 10)
+    if (!localPort.trim() || isNaN(portNum)) {
+      Alert.alert('提示', '请输入有效的端口号')
+      return
+    }
+
+    setHosting(true)
+    try {
+      const { listenTogetherHostServer } = require('@/core/listenTogether/hostServer')
+      
+      // Start TCP server
+      await listenTogetherHostServer.start(portNum, localName.trim())
+
+      // Connect to self
+      const userId = `host_${Date.now()}`
+      await initService(`tcp://127.0.0.1:${portNum}`, userId)
+      
+      const service = getService()
+      if (service) {
+        service.joinRoom({ roomId: 'local_room' })
+      }
+
+      Navigation.push(componentId, {
+        component: { name: ROOM_DETAIL_SCREEN },
+      })
+    } catch (err) {
+      Alert.alert('创建失败', err instanceof Error ? err.message : '无法创建本地服务器, 请确保端口未被占用。')
+    } finally {
+      setHosting(false)
+    }
+
+  }, [localName, localPort, componentId])
 
   const handleSelectHistory = useCallback((address: string) => {
     setServerAddress(address)
@@ -132,7 +187,7 @@ const Entry: React.FC<Props> = ({ componentId }) => {
                   borderColor: theme['c-primary-light-100-alpha-300'],
                 },
               ]}
-              placeholder="输入服务器地址 (如: http://192.168.1.1:2333)"
+              placeholder="输入服务器地址 (如: 192.168.1.5:2333)"
               placeholderTextColor={theme['c-primary-dark-100-alpha-600']}
               value={serverAddress}
               onChangeText={setServerAddress}
@@ -220,13 +275,48 @@ const Entry: React.FC<Props> = ({ componentId }) => {
         <View style={[styles.section, { backgroundColor: theme.secondary }]}>
           <Text style={[styles.sectionTitle, { color: theme['primary-font'] }]}>通过此设备创建房间</Text>
           <Text style={[styles.sectionDesc, { color: theme['secondary-font'] }]}>
-            将此设备作为服务器，其他设备可以连接
+            将此设备作为服务器(内网/穿透)，其他设备只需输入连接地址即可直接进入你的房间
           </Text>
+
+          <View style={styles.inputContainer}>
+            <TextInput
+              style={[
+                styles.input,
+                {
+                  color: theme['c-font'],
+                  backgroundColor: theme['c-content-background'],
+                  borderColor: theme['c-primary-light-100-alpha-300'],
+                  marginBottom: 12,
+                },
+              ]}
+              placeholder="输入你的名字 (如: 小明)"
+              placeholderTextColor={theme['c-primary-dark-100-alpha-600']}
+              value={localName}
+              onChangeText={setLocalName}
+            />
+            <TextInput
+              style={[
+                styles.input,
+                {
+                  color: theme['c-font'],
+                  backgroundColor: theme['c-content-background'],
+                  borderColor: theme['c-primary-light-100-alpha-300'],
+                },
+              ]}
+              placeholder="输入端口号 (默认: 2333)"
+              placeholderTextColor={theme['c-primary-dark-100-alpha-600']}
+              value={localPort}
+              onChangeText={setLocalPort}
+              keyboardType="number-pad"
+            />
+          </View>
+
           <Button
-            style={[styles.button, styles.fullButton, { backgroundColor: theme.disabled }]}
+            style={[styles.button, styles.fullButton, { backgroundColor: hosting ? theme.disabled : theme.primary }]}
             onPress={handleCreateLocalRoom}
+            disabled={hosting || isConnected}
           >
-            <Text style={styles.buttonText}>开发中...</Text>
+            <Text style={styles.buttonText}>{hosting ? '创建中...' : '建房并进入'}</Text>
           </Button>
         </View>
 

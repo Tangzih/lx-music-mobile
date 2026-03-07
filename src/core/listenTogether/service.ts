@@ -56,6 +56,13 @@ export class ListenTogetherService extends Event {
       this.emit('roomStateUpdated', data)
     })
 
+    // 房间列表更新
+    this.ws.on('room_list', (data: {
+      rooms: LX.ListenTogether.RoomInfo[]
+    }) => {
+      this.emit('roomListUpdated', data.rooms)
+    })
+
     // 播放状态更新
     this.ws.on('playback_state', (data: {
       state: LX.ListenTogether.PlaybackState
@@ -124,6 +131,13 @@ export class ListenTogetherService extends Event {
    */
   disconnect(): void {
     this.ws.close()
+  }
+
+  /**
+   * 获取房间列表
+   */
+  getRoomList(): void {
+    this.ws.send('get_room_list', {})
   }
 
   /**

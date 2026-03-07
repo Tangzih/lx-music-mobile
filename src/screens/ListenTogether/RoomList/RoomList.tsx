@@ -59,6 +59,12 @@ const RoomListItem: React.FC<RoomListItemProps> = ({ room, onPress }) => {
           </Text>
         </View>
 
+        {room.hasPassword && (
+          <View style={[styles.footerItem, { marginLeft: 0, marginRight: 16 }]}>
+            <Icon name='lock' size={14} color={theme['secondary-font']} />
+          </View>
+        )}
+
         <View style={styles.footerItem}>
           <Icon name='account-circle' size={14} color={theme['secondary-font']} />
           <Text style={[styles.footerText, { color: theme['secondary-font'] }]} numberOfLines={1}>
@@ -77,17 +83,23 @@ interface Props {
 const RoomList: React.FC<Props> = ({ componentId }) => {
   const theme = useTheme()
   const statusBarHeight = useStatusbarHeight()
-  const { isConnected, createRoom, joinRoom } = useListenTogether()
+  const { isConnected, createRoom, joinRoom, refreshRoomList } = useListenTogether()
   const roomList = useRoomList()
 
   const [refreshing, setRefreshing] = useState(false)
 
+  // Initial load
+  React.useEffect(() => {
+    if (isConnected) {
+      refreshRoomList()
+    }
+  }, [isConnected, refreshRoomList])
+
   const handleRefresh = useCallback(async () => {
     setRefreshing(true)
-    // TODO: call refresh room list method
-    // await refreshRoomList()
-    setRefreshing(false)
-  }, [])
+    refreshRoomList()
+    setTimeout(() => setRefreshing(false), 1000)
+  }, [refreshRoomList])
 
   const handleCreateRoom = useCallback(() => {
     Navigation.showModal({
@@ -107,6 +119,34 @@ const RoomList: React.FC<Props> = ({ componentId }) => {
   }, [createRoom])
 
   const handleJoinRoom = useCallback((room: LX.ListenTogether.RoomInfo) => {
+    if (room.hasPassword) {
+      import('react-native').then(({ Alert }) => {
+        Alert.prompt(
+          '输入密码',
+          '该房间需要密码才能进入',
+          [
+            { text: '取消', style: 'cancel' },
+            { 
+              text: '确定', 
+              onPress: (password) => {
+                if (!password) return
+                joinRoom({ roomId: room.id, password })
+                Navigation.push(componentId, {
+                  component: {
+                    name: ROOM_DETAIL_SCREEN,
+                    passProps: { roomId: room.id },
+                  },
+                })
+              }
+            }
+          ],
+          'secure-text'
+        )
+      })
+      return
+    }
+
+    joinRoom({ roomId: room.id })
     Navigation.push(componentId, {
       component: {
         name: ROOM_DETAIL_SCREEN,
@@ -115,7 +155,7 @@ const RoomList: React.FC<Props> = ({ componentId }) => {
         },
       },
     })
-  }, [componentId])
+  }, [componentId, joinRoom])
 
   const handleDisconnect = useCallback(() => {
     disconnectService()

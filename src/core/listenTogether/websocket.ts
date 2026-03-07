@@ -20,12 +20,15 @@ export class ListenTogetherWebSocket extends Event {
   private heartbeatTimer: ReturnType<typeof setInterval> | null = null
   private isConnecting = false
   private isManuallyClosed = false
+  private isTcp = false
+  private buffer = ''
 
   constructor(options: WSOptions) {
     super()
     this.url = options.url
     this.reconnectInterval = options.reconnectInterval ?? 5000
     this.heartbeatInterval = options.heartbeatInterval ?? 30000
+    this.isTcp = this.url.startsWith('tcp://')
   }
 
   /**
@@ -47,39 +50,94 @@ export class ListenTogetherWebSocket extends Event {
       this.isManuallyClosed = false
 
       try {
-        this.ws = new WebSocket(this.url)
+        if (this.isTcp) {
+          const TcpSocket = require('react-native-tcp-socket').default
+          const [host, portStr] = this.url.replace('tcp://', '').split(':')
+          
+          this.ws = TcpSocket.createConnection(
+            { host, port: parseInt(portStr || '2333', 10) },
+            () => {
+              this.isConnecting = false
+              this.startHeartbeat()
+              this.emit('open')
+              resolve()
+            }
+          )
 
-        this.ws.onopen = () => {
-          this.isConnecting = false
-          this.startHeartbeat()
-          this.emit('open')
-          resolve()
-        }
+          this.ws.on('data', (data: any) => {
+            this.buffer += data.toString('utf-8')
+            let newlineIndex
+            while ((newlineIndex = this.buffer.indexOf('\n')) !== -1) {
+              const line = this.buffer.slice(0, newlineIndex)
+              this.buffer = this.buffer.slice(newlineIndex + 1)
+              if (line.trim()) {
+                try {
+                  const message = JSON.parse(line) as LX.ListenTogether.WSMessage
+                  this.emit('message', message)
+                  this.emit(message.type, message.data)
+                } catch (err) {
+                  this.emit('error', err)
+                }
+              }
+            }
+          })
 
-        this.ws.onmessage = (event) => {
+          this.ws.on('close', () => {
+            this.isConnecting = false
+            this.stopHeartbeat()
+            this.emit('close')
+
+            if (!this.isManuallyClosed) {
+              this.scheduleReconnect()
+            }
+          })
+
+          this.ws.on('error', (error: any) => {
+            this.isConnecting = false
+            this.emit('error', error)
+            reject(error)
+          })
+          
+        } else {
           try {
-            const message = JSON.parse(event.data) as LX.ListenTogether.WSMessage
-            this.emit('message', message)
-            this.emit(message.type, message.data)
+            this.ws = new WebSocket(this.url)
+
+            this.ws.onopen = () => {
+              this.isConnecting = false
+              this.startHeartbeat()
+              this.emit('open')
+              resolve()
+            }
+
+            this.ws.onmessage = (event: any) => {
+              try {
+                const message = JSON.parse(event.data) as LX.ListenTogether.WSMessage
+                this.emit('message', message)
+                this.emit(message.type, message.data)
+              } catch (err) {
+                this.emit('error', err)
+              }
+            }
+
+            this.ws.onclose = () => {
+              this.isConnecting = false
+              this.stopHeartbeat()
+              this.emit('close')
+
+              if (!this.isManuallyClosed) {
+                this.scheduleReconnect()
+              }
+            }
+
+            this.ws.onerror = (error: any) => {
+              this.isConnecting = false
+              this.emit('error', error)
+              reject(error)
+            }
           } catch (err) {
-            this.emit('error', err)
+            this.isConnecting = false
+            reject(err)
           }
-        }
-
-        this.ws.onclose = () => {
-          this.isConnecting = false
-          this.stopHeartbeat()
-          this.emit('close')
-
-          if (!this.isManuallyClosed) {
-            this.scheduleReconnect()
-          }
-        }
-
-        this.ws.onerror = (error) => {
-          this.isConnecting = false
-          this.emit('error', error)
-          reject(error)
         }
       } catch (err) {
         this.isConnecting = false
@@ -102,8 +160,18 @@ export class ListenTogetherWebSocket extends Event {
       timestamp: Date.now(),
     }
 
-    this.ws.send(JSON.stringify(message))
-    return true
+    if (this.isTcp && (this.ws as any)?.write) {
+      try {
+        ;(this.ws as any).write(JSON.stringify(message) + '\n')
+        return true
+      } catch (err) {
+        return false
+      }
+    } else if (this.ws?.send) {
+      this.ws.send(JSON.stringify(message))
+      return true
+    }
+    return false
   }
 
   /**
@@ -115,7 +183,11 @@ export class ListenTogetherWebSocket extends Event {
     this.stopHeartbeat()
 
     if (this.ws) {
-      this.ws.close()
+      if (this.isTcp && (this.ws as any).destroy) {
+        ;(this.ws as any).destroy()
+      } else if (this.ws.close) {
+        this.ws.close()
+      }
       this.ws = null
     }
   }
@@ -163,6 +235,9 @@ export class ListenTogetherWebSocket extends Event {
    * 是否已连接
    */
   get isConnected(): boolean {
+    if (this.isTcp) {
+      return !!this.ws && !(this.ws as any).destroyed
+    }
     return this.ws?.readyState === WebSocket.OPEN
   }
 }

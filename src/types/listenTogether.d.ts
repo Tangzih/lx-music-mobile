@@ -23,6 +23,8 @@ declare namespace LX.ListenTogether {
     allowRequest: boolean
     /** 是否允许成员控制播放 */
     allowMemberControl: boolean
+    /** 是否有密码 */
+    hasPassword?: boolean
     /** 创建时间 */
     createdAt: number
     /** 当前播放状态 */
@@ -133,6 +135,7 @@ declare namespace LX.ListenTogether {
     description?: string
     maxMembers?: number
     isPublic?: boolean
+    password?: string
     allowRequest?: boolean
     allowMemberControl?: boolean
   }

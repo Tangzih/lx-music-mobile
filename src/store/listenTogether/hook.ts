@@ -60,6 +60,10 @@ export const initService = async (serverUrl: string, userId: string, userName?: 
     setInRoom(true)
   })
 
+  serviceInstance.on('roomListUpdated', (rooms) => {
+    setRoomList(rooms)
+  })
+
   serviceInstance.on('playbackStateUpdated', (state) => {
     const { currentRoom } = getState()
     if (currentRoom) {
@@ -220,6 +224,14 @@ export const useListenTogether = () => {
     serviceInstance.createRoom(params)
   }, [])
 
+  const refreshRoomList = useCallback(() => {
+    if (!serviceInstance) {
+      console.warn('Service not initialized')
+      return
+    }
+    serviceInstance.getRoomList()
+  }, [])
+
   const joinRoom = useCallback((params: LX.ListenTogether.JoinRoomParams) => {
     if (!serviceInstance) {
       console.warn('Service not initialized')
@@ -341,6 +353,7 @@ export const useListenTogether = () => {
     createRoom,
     joinRoom,
     leaveRoom,
+    refreshRoomList,
     sendMessage,
     sendReaction,
     changeSong,

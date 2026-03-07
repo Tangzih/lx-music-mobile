@@ -23,6 +23,7 @@ const CreateRoomModal: React.FC<Props> = ({ componentId, onCreate }) => {
   const [description, setDescription] = useState('')
   const [maxMembers, setMaxMembers] = useState(10)
   const [isPublic, setIsPublic] = useState(true)
+  const [password, setPassword] = useState('')
   const [allowRequest, setAllowRequest] = useState(true)
   const [allowMemberControl, setAllowMemberControl] = useState(false)
   const [isLoading, setIsLoading] = useState(false)
@@ -41,6 +42,7 @@ const CreateRoomModal: React.FC<Props> = ({ componentId, onCreate }) => {
       description: description.trim() || undefined,
       maxMembers,
       isPublic,
+      password: password.trim() || undefined,
       allowRequest,
       allowMemberControl,
     }
@@ -140,6 +142,19 @@ const CreateRoomModal: React.FC<Props> = ({ componentId, onCreate }) => {
             thumbColor='#fff'
           />
         </View>
+
+        {!isPublic && (
+          <View style={styles.formItem}>
+            <Text style={[styles.label, { color: theme['primary-font'] }]} >房间密码 (可选)</Text>
+            <Input
+              value={password}
+              onChangeText={setPassword}
+              placeholder='留空则无密码'
+              maxLength={20}
+              style={styles.input}
+            />
+          </View>
+        )}
 
         <View style={[styles.formItem, styles.switchItem]}>
           <Text style={[styles.label, { color: theme['primary-font'] }]} >允许点歌</Text>
