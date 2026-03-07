@@ -1,2 +1,2 @@
-export { default as Entry } from './Entry'
+export { default } from './Entry'
 export * from './screenNames'
