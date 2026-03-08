@@ -14,6 +14,7 @@ import { disconnectService } from '@/store/listenTogether/hook'
 import Text from '@/components/common/Text'
 import { Icon } from '@/components/common/Icon'
 import Button from '@/components/common/Button'
+import PageContent from '@/components/PageContent'
 import { ROOM_DETAIL_SCREEN, CREATE_ROOM_MODAL } from './screenNames'
 
 interface RoomListItemProps {
@@ -171,17 +172,17 @@ const RoomList: React.FC<Props> = ({ componentId }) => {
   ), [handleJoinRoom])
 
   return (
-    <View style={[styles.container, { backgroundColor: theme.primary }]}>
+    <PageContent>
       {/* Header */}
       <View style={[styles.header, { paddingTop: statusBarHeight }]}>
         <TouchableOpacity style={styles.backBtn} onPress={handleBack}>
-          <Icon name="arrow-left" size={24} color={theme['primary-font']} />
+          <Icon name="arrow-left" size={24} color={theme['c-font']} />
         </TouchableOpacity>
         <View style={styles.headerCenter}>
-          <Text style={[styles.title, { color: theme['primary-font'] }]}>房间列表</Text>
+          <Text style={[styles.title, { color: theme['c-font'] }]}>房间列表</Text>
         </View>
         <TouchableOpacity style={styles.disconnectBtn} onPress={handleDisconnect}>
-          <Icon name="exit2" size={22} color={theme['primary-font']} />
+          <Icon name="exit2" size={22} color={theme['c-font']} />
         </TouchableOpacity>
       </View>
 
@@ -192,11 +193,11 @@ const RoomList: React.FC<Props> = ({ componentId }) => {
           disabled={!isConnected}
           style={[
             styles.createBtn,
-            { backgroundColor: isConnected ? theme.success : theme.disabled },
+            { backgroundColor: isConnected ? theme['c-button-background'] : theme.disabled },
           ]}
         >
-          <Icon name="plus" size={18} color="#fff" />
-          <Text style={styles.createBtnText}>创建房间</Text>
+          <Icon name="plus" size={18} color={theme['c-button-font']} />
+          <Text style={[styles.createBtnText, { color: theme['c-button-font'] }]}>创建房间</Text>
         </Button>
       </View>
 
@@ -226,7 +227,7 @@ const RoomList: React.FC<Props> = ({ componentId }) => {
           </View>
         }
       />
-    </View>
+    </PageContent>
   )
 }
 

@@ -56,24 +56,24 @@ const CreateRoomModal: React.FC<Props> = ({ componentId, onCreate }) => {
   }, [name, description, maxMembers, isPublic, allowRequest, allowMemberControl, onCreate, handleClose])
 
   return (
-    <View style={[styles.container, { backgroundColor: theme.primary }]} >
+    <View style={[styles.container, { backgroundColor: theme['c-content-background'] }]} >
       {/* 头部 */}
       <View style={[styles.header, { borderBottomColor: theme.border }]} >
         <Button onPress={handleClose} style={styles.closeBtn}>
-          <Text style={[styles.closeText, { color: theme['secondary-font'] }]} >取消</Text>
+          <Text style={[styles.closeText, { color: theme['c-font'] }]} >取消</Text>
         </Button>
 
-        <Text style={[styles.headerTitle, { color: theme['primary-font'] }]} >创建房间</Text>
+        <Text style={[styles.headerTitle, { color: theme['c-font'] }]} >创建房间</Text>
 
         <Button
           onPress={handleCreate}
           disabled={!name.trim() || isLoading}
           style={[
             styles.createBtn,
-            { backgroundColor: name.trim() ? theme.primary : theme.disabled },
+            { backgroundColor: name.trim() ? theme['c-button-background'] : theme.disabled },
           ]}
         >
-          <Text style={styles.createBtnText}>创建</Text>
+          <Text style={[styles.createBtnText, { color: theme['c-button-font'] }]}>创建</Text>
         </Button>
       </View>
 
@@ -213,7 +213,6 @@ const styles = StyleSheet.create({
   },
   createBtnText: {
     fontSize: 14,
-    color: '#fff',
     fontWeight: '500',
   },
   form: {
