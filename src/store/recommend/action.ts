@@ -88,6 +88,17 @@ const loadLastClearTimeFromStorage = async(): Promise<number> => {
 }
 
 /**
+ * 刷新定时清空计时器的起始时间
+ */
+const refreshLastClearTime = () => {
+  const now = Date.now()
+  recommendState.lastClearTime = now
+  saveLastClearTimeToStorage(now).catch((err) => {
+    console.error('[推荐] 保存清空时间失败:', err)
+  })
+}
+
+/**
  * 初始化推荐列表（应用启动时调用）
  */
 const initRecommendList = async() => {
@@ -101,6 +112,20 @@ const initRecommendList = async() => {
 
   // 检查是否需要自动清空
   checkAutoClear()
+
+  // 监听音乐播放事件，如果播放的是推荐列表的歌曲，重置定时清空的计时时间（从最后一次播放开始算）
+  global.state_event.on('playMusicInfoChanged', (playMusicInfo) => {
+    if (playMusicInfo && playMusicInfo.listId === LIST_IDS.RECOMMEND) {
+      refreshLastClearTime()
+    }
+  })
+
+  // 监听设置修改事件，如果在设置里更改了定时清理时间开关/时长，也重新开始计时
+  global.state_event.on('configUpdated', (keys, settings) => {
+    if (keys.includes('recommend.autoClear') || keys.includes('recommend.autoClearHours')) {
+      refreshLastClearTime()
+    }
+  })
 }
 
 /**
@@ -121,7 +146,13 @@ const checkAutoClear = async() => {
   }
 
   const now = Date.now()
-  const lastClearTime = recommendState.lastClearTime || now
+  let lastClearTime = recommendState.lastClearTime
+  if (!lastClearTime) {
+    // 兼容刚升级/初次打开：如果内存中时间缺失，就以此时作为起点并将其持久化，否则每次打开算出的过去小时间永远是0
+    lastClearTime = now
+    recommendState.lastClearTime = now
+    await saveLastClearTimeToStorage(now)
+  }
   const hoursPassed = (now - lastClearTime) / (1000 * 60 * 60)
 
   // 如果超过设定时间，清空推荐列表
