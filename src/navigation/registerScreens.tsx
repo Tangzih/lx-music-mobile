@@ -31,6 +31,8 @@ import {
   CREATE_ROOM_MODAL,
 } from '@/screens/ListenTogether/RoomList/screenNames'
 import { LISTEN_TOGETHER_ENTRY_SCREEN } from '@/screens/ListenTogether/Entry/screenNames'
+import { LISTEN_TOGETHER_OVERLAY } from '@/navigation/screenNames'
+import ListenTogetherOverlay from '@/screens/ListenTogether/ListenTogetherOverlay'
 import VersionModal from './components/VersionModal'
 import PactModal from './components/PactModal'
 import SyncModeModal from './components/SyncModeModal'
@@ -58,6 +60,7 @@ export default () => {
   Navigation.registerComponent(PACT_MODAL, () => WrappedComponent(PactModal))
   Navigation.registerComponent(SYNC_MODE_MODAL, () => WrappedComponent(SyncModeModal))
   // Navigation.registerComponent(SETTING_SCREEN, () => WrappedComponent(Setting))
+  Navigation.registerComponent(LISTEN_TOGETHER_OVERLAY, () => WrappedComponent(ListenTogetherOverlay))
 
   // 一起听屏幕
   Navigation.registerComponent(LISTEN_TOGETHER_ENTRY_SCREEN, () => WrappedComponent(Entry))
