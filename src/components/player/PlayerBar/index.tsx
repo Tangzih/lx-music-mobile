@@ -20,9 +20,9 @@ export default memo(({ isHome = false }: { isHome?: boolean }) => {
   const autoHidePlayBar = useSettingValue('common.autoHidePlayBar')
 
   const playerComponent = useMemo(() => (
-    <View style={{ backgroundColor: theme['c-content-background'] }}>
+    <View style={{ ...styles.container, backgroundColor: theme['c-content-background'] }}>
       <ListenTogetherMiniBar />
-      <View style={styles.container}>
+      <View style={styles.playerContent}>
         <Pic isHome={isHome} />
         <View style={styles.center}>
           <Title isHome={isHome} />
@@ -52,15 +52,16 @@ const styles = createStyle({
     // marginTop: -progressContentPadding,
     // backgroundColor: 'rgba(0, 0, 0, .1)',
     // borderTopWidth: BorderWidths.normal2,
-    paddingVertical: 5,
-    paddingLeft: 5,
-    // backgroundColor: AppColors.primary,
-    // backgroundColor: 'red',
     borderTopLeftRadius: 6,
     borderTopRightRadius: 6,
+    elevation: 10,
+  },
+  playerContent: {
+    width: '100%',
+    paddingVertical: 5,
+    paddingLeft: 5,
     flexDirection: 'row',
     alignItems: 'center',
-    elevation: 10,
   },
   left: {
     // borderRadius: 3,

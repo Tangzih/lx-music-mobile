@@ -68,9 +68,6 @@ const styles = StyleSheet.create({
     justifyContent: 'space-between',
     paddingHorizontal: 14,
     paddingVertical: 7,
-    // 圆角只上方
-    borderTopLeftRadius: 8,
-    borderTopRightRadius: 8,
   },
   left: {
     flexDirection: 'row',
