@@ -17,6 +17,7 @@ import { COMPONENT_IDS } from '@/config/constant'
 import Text from '@/components/common/Text'
 import { Icon } from '@/components/common/Icon'
 import Button from '@/components/common/Button'
+import PageContent from '@/components/PageContent'
 import { ROOM_LIST_SCREEN } from '../RoomList/screenNames'
 import { ROOM_DETAIL_SCREEN } from '../RoomDetail/screenNames'
 import { LISTEN_TOGETHER_ENTRY_SCREEN } from './screenNames'
@@ -35,6 +36,8 @@ const Entry: React.FC<Props> = ({ componentId }) => {
   const { isLoading, error } = useListenTogether()
 
   const [serverAddress, setServerAddress] = useState('')
+  // 模式： 'server' (普通服务器, websocket) | 'local' (内网直连房主, TCP)
+  const [connectMode, setConnectMode] = useState<'server' | 'local'>('server')
   const [connecting, setConnecting] = useState(false)
   const [showHistory, setShowHistory] = useState(false)
   const [serverHistory, setServerHistory] = useState<string[]>([])
@@ -60,9 +63,24 @@ const Entry: React.FC<Props> = ({ componentId }) => {
       return
     }
 
-    // Validate URL format
+    let address = serverAddress.trim()
+    
+    // 如果没有输入协议前缀，根据模式自动补全
+    if (!/^[a-zA-Z]+:\/\//.test(address)) {
+      if (connectMode === 'server') {
+        address = `ws://${address}`
+      } else {
+        address = `tcp://${address}`
+      }
+    }
+
+    // 尝试解析并验证 URL，如果在 React Native 中 WebSocket 找不到协议会导致崩溃
     try {
-      new URL(serverAddress.trim())
+      const urlObj = new URL(address)
+      if (!['ws:', 'wss:', 'http:', 'https:', 'tcp:'].includes(urlObj.protocol)) {
+        Alert.alert('提示', '不支持的协议类型')
+        return
+      }
     } catch {
       Alert.alert('提示', '请输入有效的服务器地址')
       return
@@ -71,24 +89,17 @@ const Entry: React.FC<Props> = ({ componentId }) => {
     setConnecting(true)
 
     try {
-      // Generate a unique user ID (in production, this should come from user settings)
+      // Generate a unique user ID
       const userId = `user_${Date.now()}`
-      
-      let address = serverAddress.trim()
-      // If user inputs IP:PORT without tcp:// scheme, assume it's TCP
-      if (/^[\d\.]+:\d+$/.test(address)) {
-        address = `tcp://${address}`
-      }
 
       await initService(address, userId)
 
       // Save to history
       const newHistory = [address, ...serverHistory.filter(s => s !== address)].slice(0, 5)
       setServerHistory(newHistory)
-      // TODO: Save to AsyncStorage
 
-      if (address.startsWith('tcp://')) {
-        // Direct mobile room, join directly and skip room list
+      if (address.startsWith('tcp://') || connectMode === 'local') {
+        // TCP Direct Room: join directly and skip room list
         const service = getService()
         if (service) {
           service.joinRoom({ roomId: 'local_room' })
@@ -97,7 +108,7 @@ const Entry: React.FC<Props> = ({ componentId }) => {
           component: { name: ROOM_DETAIL_SCREEN },
         })
       } else {
-        // Standard server, go to room list
+        // Standard server WebSocket: wait for handshake then show room list
         Navigation.push(componentId, {
           component: { name: ROOM_LIST_SCREEN },
         })
@@ -158,23 +169,38 @@ const Entry: React.FC<Props> = ({ componentId }) => {
   }, [])
 
   return (
-    <View style={[styles.container, { backgroundColor: theme.primary }]}>
+    <PageContent>
       {/* Header */}
       <View style={[styles.header, { paddingTop: statusBarHeight }]}>
         <TouchableOpacity
           style={styles.backBtn}
           onPress={() => Navigation.pop(componentId)}
         >
-          <Icon name="arrow-left" size={24} color={theme['primary-font']} />
+          <Icon name="arrow-left" size={24} color={theme['c-font']} />
         </TouchableOpacity>
-        <Text style={[styles.title, { color: theme['primary-font'] }]}>一起听</Text>
+        <Text style={[styles.title, { color: theme['c-font'] }]}>一起听</Text>
         <View style={styles.headerRight} />
       </View>
 
       <ScrollView style={styles.content} contentContainerStyle={styles.contentContainer}>
         {/* Join Server Section */}
-        <View style={[styles.section, { backgroundColor: theme.secondary }]}>
-          <Text style={[styles.sectionTitle, { color: theme['primary-font'] }]}>加入服务器</Text>
+        <View style={[styles.section, { backgroundColor: theme['c-content-background'] }]}>
+          <Text style={[styles.sectionTitle, { color: theme['c-font'] }]}>加入服务器</Text>
+
+          <View style={styles.modeTabs}>
+            <TouchableOpacity 
+              style={[styles.modeTab, connectMode === 'server' && { backgroundColor: theme['c-button-background'] }]} 
+              onPress={() => setConnectMode('server')}
+            >
+              <Text style={{ color: connectMode === 'server' ? theme['c-button-font'] : theme['c-font'] }}>服务器模式(有房间列表)</Text>
+            </TouchableOpacity>
+            <TouchableOpacity 
+              style={[styles.modeTab, connectMode === 'local' && { backgroundColor: theme['c-button-background'] }]} 
+              onPress={() => setConnectMode('local')}
+            >
+              <Text style={{ color: connectMode === 'local' ? theme['c-button-font'] : theme['c-font'] }}>直连自建房(IP:端口)</Text>
+            </TouchableOpacity>
+          </View>
 
           <View style={styles.inputContainer}>
             <TextInput
@@ -183,11 +209,11 @@ const Entry: React.FC<Props> = ({ componentId }) => {
                 styles.input,
                 {
                   color: theme['c-font'],
-                  backgroundColor: theme['c-content-background'],
+                  backgroundColor: theme['c-main-background'],
                   borderColor: theme['c-primary-light-100-alpha-300'],
                 },
               ]}
-              placeholder="输入服务器地址 (如: 192.168.1.5:2333)"
+              placeholder={connectMode === 'server' ? "服务器地址 (如: 192.168.1.5:3100 或 ws://...)" : "直连地址 (如: 192.168.1.6:2333)"}
               placeholderTextColor={theme['c-primary-dark-100-alpha-600']}
               value={serverAddress}
               onChangeText={setServerAddress}
@@ -272,10 +298,10 @@ const Entry: React.FC<Props> = ({ componentId }) => {
         </View>
 
         {/* Create Local Room Section */}
-        <View style={[styles.section, { backgroundColor: theme.secondary }]}>
-          <Text style={[styles.sectionTitle, { color: theme['primary-font'] }]}>通过此设备创建房间</Text>
-          <Text style={[styles.sectionDesc, { color: theme['secondary-font'] }]}>
-            将此设备作为服务器(内网/穿透)，其他设备只需输入连接地址即可直接进入你的房间
+        <View style={[styles.section, { backgroundColor: theme['c-content-background'] }]}>
+          <Text style={[styles.sectionTitle, { color: theme['c-font'] }]}>通过此设备创建房间</Text>
+          <Text style={[styles.sectionDesc, { color: theme['c-font'] }]}>
+            将此设备作为服务器(内网/穿透)，其他设备只需输入此设备的 IP 和 端口 即可直接进入你的房间。
           </Text>
 
           <View style={styles.inputContainer}>
@@ -284,7 +310,7 @@ const Entry: React.FC<Props> = ({ componentId }) => {
                 styles.input,
                 {
                   color: theme['c-font'],
-                  backgroundColor: theme['c-content-background'],
+                  backgroundColor: theme['c-main-background'],
                   borderColor: theme['c-primary-light-100-alpha-300'],
                   marginBottom: 12,
                 },
@@ -299,11 +325,11 @@ const Entry: React.FC<Props> = ({ componentId }) => {
                 styles.input,
                 {
                   color: theme['c-font'],
-                  backgroundColor: theme['c-content-background'],
+                  backgroundColor: theme['c-main-background'],
                   borderColor: theme['c-primary-light-100-alpha-300'],
                 },
               ]}
-              placeholder="输入端口号 (默认: 2333)"
+              placeholder="端口号 (默认: 2333)"
               placeholderTextColor={theme['c-primary-dark-100-alpha-600']}
               value={localPort}
               onChangeText={setLocalPort}
@@ -321,7 +347,7 @@ const Entry: React.FC<Props> = ({ componentId }) => {
         </View>
 
       </ScrollView>
-    </View>
+    </PageContent>
   )
 }
 
@@ -345,7 +371,7 @@ const styles = StyleSheet.create({
     textAlign: 'center',
   },
   headerRight: {
-    width: 40,
+    width: 24,
   },
   content: {
     flex: 1,
@@ -356,7 +382,24 @@ const styles = StyleSheet.create({
   section: {
     borderRadius: 12,
     padding: 16,
-    marginBottom: 16,
+    marginBottom: 24,
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.1,
+    shadowRadius: 4,
+    elevation: 3,
+  },
+  modeTabs: {
+    flexDirection: 'row',
+    marginBottom: 12,
+    borderRadius: 8,
+    overflow: 'hidden',
+  },
+  modeTab: {
+    flex: 1,
+    paddingVertical: 8,
+    alignItems: 'center',
+    justifyContent: 'center',
   },
   sectionTitle: {
     fontSize: 18,
