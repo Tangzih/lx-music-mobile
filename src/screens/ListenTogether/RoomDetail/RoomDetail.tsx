@@ -243,13 +243,11 @@ const RoomDetail: React.FC<Props> = ({ componentId, roomId }) => {
         <View style={styles.roomInfo} >
           <View style={[styles.roomInfoContainer, { backgroundColor: theme['c-primary-light-100-alpha-300'] }]}>
             <View style={styles.roomInfoRow}>
-              <Icon name='account' size={16} color={theme['c-500']} />
               <Text style={[styles.roomInfoText, { color: theme['c-font'] }]} >
-                {currentRoom.currentMembers}/{currentRoom.maxMembers} 人
+                人数: {currentRoom.currentMembers}/{currentRoom.maxMembers}
               </Text>
             </View>
             <View style={styles.roomInfoRow}>
-              <Icon name='account-circle' size={16} color={theme['c-500']} />
               <Text style={[styles.roomInfoText, { color: theme['c-font'] }]} >
                 房主: {currentRoom.hostName}
               </Text>
@@ -261,9 +259,9 @@ const RoomDetail: React.FC<Props> = ({ componentId, roomId }) => {
       {/* 标签栏 */}
       <View style={[styles.tabBar, { borderBottomColor: theme['c-primary-light-100-alpha-300'] }]} >
         {[
-          { key: 'chat' as const, label: '聊天', icon: 'message-text' },
-          { key: 'members' as const, label: '成员', icon: 'account-group' },
-          { key: 'playlist' as const, label: '播放列表', icon: 'playlist-music' },
+          { key: 'chat' as const, label: '聊天', icon: 'comment' },
+          { key: 'members' as const, label: '成员' },
+          { key: 'playlist' as const, label: '播放列表', icon: 'list-order' },
         ].map((tab) => (
           <TouchableOpacity
             key={tab.key}
@@ -273,11 +271,13 @@ const RoomDetail: React.FC<Props> = ({ componentId, roomId }) => {
             ]}
             onPress={() => setActiveTab(tab.key)}
           >
-            <Icon
-              name={tab.icon}
-              size={18}
-              color={activeTab === tab.key ? theme['c-primary-font'] : theme['c-500']}
-            />
+            {tab.icon && (
+              <Icon
+                name={tab.icon}
+                size={18}
+                color={activeTab === tab.key ? theme['c-primary-font'] : theme['c-500']}
+              />
+            )}
             <Text
               style={[
                 styles.tabText,
@@ -317,7 +317,7 @@ const RoomDetail: React.FC<Props> = ({ componentId, roomId }) => {
                 onPress={handleSendMessage}
                 disabled={!messageInput.trim()}
               >
-                <Icon name='send' size={18} color={messageInput.trim() ? theme['c-button-font'] : theme['c-500']} />
+                <Text style={{ color: messageInput.trim() ? theme['c-button-font'] : theme['c-500'], fontSize: 13, fontWeight: 'bold' }}>发送</Text>
               </TouchableOpacity>
             </View>
           </>
@@ -346,14 +346,14 @@ const RoomDetail: React.FC<Props> = ({ componentId, roomId }) => {
                 style={[styles.actionBtn, { backgroundColor: theme['c-button-background'] }]}
                 onPress={handleUploadPlaylist}
               >
-                <Icon name='upload' size={16} color={theme['c-button-font']} />
+                <Icon name='add_folder' size={16} color={theme['c-button-font']} />
                 <Text style={[styles.actionBtnText, { color: theme['c-button-font'] }]}>上传歌单</Text>
               </TouchableOpacity>
               <TouchableOpacity
                 style={[styles.actionBtn, { backgroundColor: theme['c-primary-light-100-alpha-300'] }]}
                 onPress={handleAddSong}
               >
-                <Icon name='plus' size={16} color={theme['c-font']} />
+                <Icon name='add-music' size={16} color={theme['c-font']} />
                 <Text style={[styles.actionBtnText, { color: theme['c-font'] }]}>添加歌曲</Text>
               </TouchableOpacity>
             </View>
@@ -439,7 +439,7 @@ const RoomDetail: React.FC<Props> = ({ componentId, roomId }) => {
               </View>
             ) : (
               <View style={styles.emptyPlaylist}>
-                <Icon name='playlist-music' size={48} color={theme['c-500']} />
+                <Icon name='list-order' size={48} color={theme['c-500']} />
                 <Text style={[styles.emptyText, { color: theme['c-500'] }]} >
                   播放列表为空
                 </Text>

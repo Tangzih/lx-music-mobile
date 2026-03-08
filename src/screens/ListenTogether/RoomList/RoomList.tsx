@@ -136,6 +136,12 @@ const RoomList: React.FC<Props> = ({ componentId }) => {
                   component: {
                     name: ROOM_DETAIL_SCREEN,
                     passProps: { roomId: room.id },
+                    options: {
+                      topBar: {
+                        visible: false,
+                        drawBehind: true,
+                      },
+                    },
                   },
                 })
               }
@@ -153,6 +159,12 @@ const RoomList: React.FC<Props> = ({ componentId }) => {
         name: ROOM_DETAIL_SCREEN,
         passProps: {
           roomId: room.id,
+        },
+        options: {
+          topBar: {
+            visible: false,
+            drawBehind: true,
+          },
         },
       },
     })
