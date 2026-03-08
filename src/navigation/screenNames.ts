@@ -7,4 +7,4 @@ export const PACT_MODAL = 'lxm.PactModal'
 export const SYNC_MODE_MODAL = 'lxm.SyncModeModal'
 // export const SETTING_SCREEN = 'lxm.SettingScreen'
 // export const TOAST_SCREEN = 'lxm.ToastScreen'
-
+export const LISTEN_TOGETHER_OVERLAY = 'lxm.ListenTogetherOverlay'

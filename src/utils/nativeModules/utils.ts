@@ -99,3 +99,22 @@ export const requestIgnoreBatteryOptimization = async() => new Promise<boolean>(
     resolve(false)
   })
 })
+
+export const canDrawOverlays = async(): Promise<boolean> => {
+  return UtilsModule.canDrawOverlays()
+}
+
+export const requestOverlayPermission = async() => new Promise<boolean>((resolve) => {
+  let subscription = AppState.addEventListener('change', (state) => {
+    if (state != 'active') return
+    subscription.remove()
+    setTimeout(() => {
+      void canDrawOverlays().then(resolve)
+    }, 1000)
+  })
+  UtilsModule.requestOverlayPermission().then((result: boolean) => {
+    if (result) return
+    subscription.remove()
+    resolve(false)
+  })
+})

@@ -4,6 +4,39 @@
 
 import { getState, setState, resetState } from './state'
 import type { ListenTogetherState } from './state'
+import { Navigation } from 'react-native-navigation'
+import { LISTEN_TOGETHER_OVERLAY } from '@/navigation/screenNames'
+
+let isOverlayShowing = false
+
+export const showListenTogetherOverlay = (): void => {
+  if (!isOverlayShowing) {
+    isOverlayShowing = true
+    Navigation.showOverlay({
+      component: {
+        id: LISTEN_TOGETHER_OVERLAY,
+        name: LISTEN_TOGETHER_OVERLAY,
+        options: {
+          layout: {
+            componentBackgroundColor: 'transparent',
+          },
+          overlay: {
+            interceptTouchOutside: false,
+          },
+        },
+      },
+    }).catch(() => {
+      isOverlayShowing = false
+    })
+  }
+}
+
+export const hideListenTogetherOverlay = (): void => {
+  if (isOverlayShowing) {
+    isOverlayShowing = false
+    Navigation.dismissOverlay(LISTEN_TOGETHER_OVERLAY).catch(() => {})
+  }
+}
 
 /** 设置连接状态 */
 export const setConnectionStatus = (isConnected: boolean): void => {
@@ -13,6 +46,9 @@ export const setConnectionStatus = (isConnected: boolean): void => {
 /** 设置是否在房间中 */
 export const setInRoom = (isInRoom: boolean): void => {
   setState({ isInRoom })
+  if (!isInRoom) {
+    hideListenTogetherOverlay()
+  }
 }
 
 /** 设置当前房间 */

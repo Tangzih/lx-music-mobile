@@ -22,6 +22,7 @@ import { ROOM_LIST_SCREEN } from '../RoomList/screenNames'
 import { ROOM_DETAIL_SCREEN } from '../RoomDetail/screenNames'
 import { LISTEN_TOGETHER_ENTRY_SCREEN } from './screenNames'
 import { setConnectMode } from '@/store/listenTogether/action'
+import { canDrawOverlays, requestOverlayPermission } from '@/utils/nativeModules/utils'
 
 interface Props {
   componentId: string
@@ -49,8 +50,13 @@ const Entry: React.FC<Props> = ({ componentId }) => {
   const [localName, setLocalName] = useState('')
   const [localPort, setLocalPort] = useState('2333')
   const [hosting, setHosting] = useState(false)
+  const [hasOverlayPermission, setHasOverlayPermission] = useState(true)
 
   const inputRef = useRef<TextInput>(null)
+
+  useEffect(() => {
+    void canDrawOverlays().then(setHasOverlayPermission)
+  }, [])
 
   // Load server history from storage (placeholder - would use AsyncStorage in production)
   useEffect(() => {
@@ -401,6 +407,37 @@ const Entry: React.FC<Props> = ({ componentId }) => {
             )}
           </View>
         </View>
+
+        {/* Overlay Permission Alert Section */}
+        {!hasOverlayPermission && (
+          <View style={[styles.section, { backgroundColor: theme['c-content-background'] }]}>
+            <View style={{ flexDirection: 'row', alignItems: 'center', marginBottom: 12 }}>
+              <Icon name="alert-circle" size={18} color={theme['c-error']} style={{ marginRight: 8 }} />
+              <Text style={[styles.sectionTitle, { color: theme['c-font'], marginBottom: 0 }]}>需要悬浮窗权限</Text>
+            </View>
+            <Text style={[styles.sectionDesc, { color: theme['secondary-font'] }]}>
+              缺少悬浮窗权限，您可能无法在一起听后台时看到快捷入口。请授权以获得最佳体验。
+            </Text>
+            <Button
+              style={[
+                styles.button,
+                { backgroundColor: theme['c-button-background'] },
+              ]}
+              onPress={async () => {
+                const result = await requestOverlayPermission()
+                if (result) {
+                  setHasOverlayPermission(true)
+                } else {
+                  Alert.alert('提示', '未能获取悬浮窗权限，请手动在系统设置中为软件开启悬浮窗权限')
+                }
+              }}
+            >
+              <Text style={[styles.buttonText, { color: theme['c-button-font'] }]}>
+                去授权
+              </Text>
+            </Button>
+          </View>
+        )}
 
       </ScrollView>
     </PageContent>

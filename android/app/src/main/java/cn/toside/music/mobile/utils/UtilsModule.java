@@ -380,6 +380,41 @@ public class UtilsModule extends ReactContextBaseJavaModule {
         promise.reject("ERROR", e);
       }
     }).start();
+  @ReactMethod
+  public void canDrawOverlays(Promise promise) {
+    if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.M) {
+      promise.resolve(android.provider.Settings.canDrawOverlays(reactContext));
+    } else {
+      promise.resolve(true);
+    }
+  }
+
+  @ReactMethod
+  public void requestOverlayPermission(Promise promise) {
+    if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.M) {
+      if (!android.provider.Settings.canDrawOverlays(reactContext)) {
+        try {
+          Intent intent = new Intent(android.provider.Settings.ACTION_MANAGE_OVERLAY_PERMISSION,
+              Uri.parse("package:" + reactContext.getPackageName()));
+          intent.addFlags(Intent.FLAG_ACTIVITY_NEW_TASK);
+          reactContext.startActivity(intent);
+          promise.resolve(true);
+        } catch (Exception e) {
+          try {
+             Intent intent = new Intent(android.provider.Settings.ACTION_MANAGE_OVERLAY_PERMISSION);
+             intent.addFlags(Intent.FLAG_ACTIVITY_NEW_TASK);
+             reactContext.startActivity(intent);
+             promise.resolve(true);
+          } catch (Exception ex) {
+             promise.reject("ERROR", ex);
+          }
+        }
+      } else {
+        promise.resolve(false);
+      }
+    } else {
+      promise.resolve(false);
+    }
   }
 }
 

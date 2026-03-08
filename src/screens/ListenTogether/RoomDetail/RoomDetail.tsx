@@ -12,6 +12,8 @@ import {
 } from 'react-native'
 import { Navigation } from 'react-native-navigation'
 import { useListenTogether, useCurrentRoom, useRoomMembers, useRoomMessages, useConnectionStatus, useIsInRoom, useListenTogetherState } from '@/store/listenTogether'
+import { hideListenTogetherOverlay, showListenTogetherOverlay } from '@/store/listenTogether/action'
+import { useNavigationComponentDidAppear, useNavigationComponentDidDisappear } from '@/navigation/hooks'
 import { Alert } from 'react-native'
 import { useTheme } from '@/store/theme/hook'
 import Text from '@/components/common/Text'
@@ -116,6 +118,17 @@ const RoomDetail: React.FC<Props> = ({ componentId, roomId }) => {
     }
   // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [ltState.error, ltState.isInRoom])
+
+  useNavigationComponentDidAppear(componentId, () => {
+    hideListenTogetherOverlay()
+  })
+
+  useNavigationComponentDidDisappear(componentId, () => {
+    const state = require('@/store/listenTogether/state').getState()
+    if (state.isInRoom) {
+      showListenTogetherOverlay()
+    }
+  })
 
   const handleBack = useCallback(() => {
     // 点击返回时，仅最小化页面，不退出房间
