@@ -19,6 +19,7 @@ import {
   setError,
   setLoading,
   clearMessages,
+  setConnectMode,
 } from './action'
 import { ListenTogetherService } from '@/core/listenTogether'
 
@@ -138,6 +139,8 @@ export const getService = (): ListenTogetherService | null => {
 }
 
 export const disconnectService = () => {
+  const currentState = getState()
+  
   if (serviceInstance) {
     serviceInstance.disconnect()
     serviceInstance = null
@@ -147,6 +150,16 @@ export const disconnectService = () => {
   setCurrentRoom(null)
   setMembers([])
   clearMessages()
+  
+  if (currentState.connectMode === 'local') {
+    try {
+      const { listenTogetherHostServer } = require('@/core/listenTogether/hostServer')
+      listenTogetherHostServer.stop()
+    } catch (err) {
+      console.error('Failed to stop local host server', err)
+    }
+  }
+  setConnectMode(null)
 }
 
 export const useListenTogetherState = () => {
@@ -248,10 +261,16 @@ export const useListenTogether = () => {
     if (!serviceInstance) return
     // 房主发送 leave_room，服务端会广播 room_dissolved 给其他成员
     serviceInstance.leaveRoom()
-    setInRoom(false)
-    setCurrentRoom(null)
-    setMembers([])
-    clearMessages()
+    const currentState = getState()
+    if (currentState.connectMode === 'local') {
+      // 本地建房：直接调用全局的 disconnectService，关闭本机的 TCP 服务器
+      disconnectService()
+    } else {
+      setInRoom(false)
+      setCurrentRoom(null)
+      setMembers([])
+      clearMessages()
+    }
   }, [])
 
   const joinRoom = useCallback((params: LX.ListenTogether.JoinRoomParams) => {

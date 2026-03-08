@@ -118,10 +118,9 @@ const RoomDetail: React.FC<Props> = ({ componentId, roomId }) => {
   }, [ltState.error, ltState.isInRoom])
 
   const handleBack = useCallback(() => {
-    // 当成员点返回时，退出房间
-    leaveRoom()
+    // 点击返回时，仅最小化页面，不退出房间
     Navigation.pop(componentId)
-  }, [componentId, leaveRoom])
+  }, [componentId])
 
   const handleLeaveOrDissolve = useCallback(() => {
     if (isHost) {

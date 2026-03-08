@@ -25,6 +25,8 @@ export interface ListenTogetherState {
   myRooms: LX.ListenTogether.RoomInfo[]
   /** 当前用户 ID */
   userId: string | null
+  /** 当前连接模式: 服务器 | 直连自建房 | 未连接 */
+  connectMode: 'server' | 'local' | null
 }
 
 export const initialState: ListenTogetherState = {
@@ -39,6 +41,7 @@ export const initialState: ListenTogetherState = {
   roomList: [],
   myRooms: [],
   userId: null,
+  connectMode: null,
 }
 
 let state = { ...initialState }

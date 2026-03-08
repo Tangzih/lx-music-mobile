@@ -176,6 +176,10 @@ const RoomList: React.FC<Props> = ({ componentId }) => {
   }, [componentId])
 
   const handleBack = useCallback(() => {
+    const { isInRoom } = require('@/store/listenTogether/state').getState()
+    if (!isInRoom) {
+      disconnectService()
+    }
     Navigation.pop(componentId)
   }, [componentId])
 

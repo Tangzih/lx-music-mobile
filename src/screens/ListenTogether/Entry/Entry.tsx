@@ -21,6 +21,7 @@ import PageContent from '@/components/PageContent'
 import { ROOM_LIST_SCREEN } from '../RoomList/screenNames'
 import { ROOM_DETAIL_SCREEN } from '../RoomDetail/screenNames'
 import { LISTEN_TOGETHER_ENTRY_SCREEN } from './screenNames'
+import { setConnectMode } from '@/store/listenTogether/action'
 
 interface Props {
   componentId: string
@@ -41,6 +42,9 @@ const Entry: React.FC<Props> = ({ componentId }) => {
   const [connecting, setConnecting] = useState(false)
   const [showHistory, setShowHistory] = useState(false)
   const [serverHistory, setServerHistory] = useState<string[]>([])
+  
+  // Use global connectMode when returning to this screen
+  const { connectMode: globalConnectMode, isInRoom } = useListenTogether()
 
   const [localName, setLocalName] = useState('')
   const [localPort, setLocalPort] = useState('2333')
@@ -97,6 +101,8 @@ const Entry: React.FC<Props> = ({ componentId }) => {
       // Save to history
       const newHistory = [address, ...serverHistory.filter(s => s !== address)].slice(0, 5)
       setServerHistory(newHistory)
+      
+      setConnectMode(connectMode)
 
       if (address.startsWith('tcp://') || connectMode === 'local') {
         // TCP Direct Room: join directly and skip room list
@@ -151,6 +157,8 @@ const Entry: React.FC<Props> = ({ componentId }) => {
       if (service) {
         service.joinRoom({ roomId: 'local_room' })
       }
+      
+      setConnectMode('local')
 
       Navigation.push(componentId, {
         component: {
@@ -231,7 +239,7 @@ const Entry: React.FC<Props> = ({ componentId }) => {
             />
 
             {/* History dropdown */}
-            {showHistory && serverHistory.length > 0 && (
+            {showHistory && serverHistory.length > 0 && !isConnected && (
               <View style={[styles.historyList, { backgroundColor: theme['c-content-background'] }]}>
                 {serverHistory.map((address, index) => (
                   <TouchableOpacity
@@ -263,13 +271,14 @@ const Entry: React.FC<Props> = ({ componentId }) => {
 
           {/* Connect/Disconnect Buttons */}
           <View style={styles.buttonRow}>
-            {isConnected ? (
+            {isConnected && globalConnectMode === 'server' ? (
               <>
                 <Button
                   style={[styles.button, { backgroundColor: theme['c-button-background'] }]}
                   onPress={() => Navigation.push(componentId, {
                     component: {
-                      name: ROOM_LIST_SCREEN,
+                      name: isInRoom ? ROOM_DETAIL_SCREEN : ROOM_LIST_SCREEN,
+                      passProps: isInRoom ? undefined : {},
                       options: {
                         topBar: {
                           visible: false,
@@ -279,7 +288,9 @@ const Entry: React.FC<Props> = ({ componentId }) => {
                     },
                   })}
                 >
-                  <Text style={[styles.buttonText, { color: theme['c-button-font'] }]}>进入房间列表</Text>
+                  <Text style={[styles.buttonText, { color: theme['c-button-font'] }]}>
+                    {isInRoom ? '重新进入房间' : '进入房间列表'}
+                  </Text>
                 </Button>
                 <Button
                   style={[styles.button, styles.disconnectBtn, { backgroundColor: theme['c-error'] }]}
@@ -293,13 +304,13 @@ const Entry: React.FC<Props> = ({ componentId }) => {
                 style={[
                   styles.button,
                   styles.fullButton,
-                  { backgroundColor: connecting ? 'rgba(0,0,0,0.2)' : theme['c-button-background'] },
+                  { backgroundColor: connecting || (isConnected && globalConnectMode === 'local') ? 'rgba(0,0,0,0.2)' : theme['c-button-background'] },
                 ]}
                 onPress={handleConnect}
-                disabled={connecting}
+                disabled={connecting || (isConnected && globalConnectMode === 'local')}
               >
-                <Text style={[styles.buttonText, { color: connecting ? theme['c-font'] : theme['c-button-font'] }]}>
-                  {connecting ? '连接中...' : '连接'}
+                <Text style={[styles.buttonText, { color: connecting || (isConnected && globalConnectMode === 'local') ? theme['c-font'] : theme['c-button-font'] }]}>
+                  {connecting ? '连接中...' : (isConnected && globalConnectMode === 'local' ? '本地模式中' : '连接')}
                 </Text>
               </Button>
             )}
@@ -353,13 +364,42 @@ const Entry: React.FC<Props> = ({ componentId }) => {
             />
           </View>
 
-          <Button
-            style={[styles.button, styles.fullButton, { backgroundColor: hosting ? 'rgba(0,0,0,0.2)' : theme['c-button-background'] }]}
-            onPress={handleCreateLocalRoom}
-            disabled={hosting || isConnected}
-          >
-            <Text style={[styles.buttonText, { color: hosting ? theme['c-font'] : theme['c-button-font'] }]}>{hosting ? '创建中...' : '建房并进入'}</Text>
-          </Button>
+          <View style={styles.buttonRow}>
+            {isConnected && globalConnectMode === 'local' ? (
+              <>
+                <Button
+                  style={[styles.button, { backgroundColor: theme['c-button-background'] }]}
+                  onPress={() => Navigation.push(componentId, {
+                    component: {
+                      name: ROOM_DETAIL_SCREEN,
+                      options: {
+                        topBar: {
+                          visible: false,
+                          drawBehind: true,
+                        },
+                      },
+                    },
+                  })}
+                >
+                  <Text style={[styles.buttonText, { color: theme['c-button-font'] }]}>重新进入房间</Text>
+                </Button>
+                <Button
+                  style={[styles.button, styles.disconnectBtn, { backgroundColor: theme['c-error'] }]}
+                  onPress={handleDisconnect}
+                >
+                  <Text style={[styles.buttonText, { color: '#fff' }]}>解散房间</Text>
+                </Button>
+              </>
+            ) : (
+              <Button
+                style={[styles.button, styles.fullButton, { backgroundColor: hosting || (isConnected && globalConnectMode === 'server') ? 'rgba(0,0,0,0.2)' : theme['c-button-background'] }]}
+                onPress={handleCreateLocalRoom}
+                disabled={hosting || (isConnected && globalConnectMode === 'server')}
+              >
+                <Text style={[styles.buttonText, { color: hosting || (isConnected && globalConnectMode === 'server') ? theme['c-font'] : theme['c-button-font'] }]}>{hosting ? '创建中...' : '建房并进入'}</Text>
+              </Button>
+            )}
+          </View>
         </View>
 
       </ScrollView>
