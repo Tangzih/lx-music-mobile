@@ -34,13 +34,13 @@ const MemberItem: React.FC<MemberItemProps> = ({ member, isHost }) => {
   const theme = useTheme()
 
   return (
-    <View style={[styles.memberItem, { backgroundColor: theme.secondary }]} >
+    <View style={[styles.memberItem, { borderBottomColor: theme['c-primary-light-100-alpha-300'] }]} >
       <View style={styles.memberAvatar}>
         {member.avatar ? (
           <Image source={{ uri: member.avatar }} style={styles.avatarImage} />
         ) : (
-          <View style={[styles.avatarPlaceholder, { backgroundColor: theme.primary }]} >
-            <Text style={[styles.avatarText, { color: theme['primary-font'] }]} >
+          <View style={[styles.avatarPlaceholder, { backgroundColor: theme['c-primary-light-100-alpha-300'] }]} >
+            <Text style={[styles.avatarText, { color: theme['c-font'] }]} >
               {member.name.charAt(0).toUpperCase()}
             </Text>
           </View>
@@ -48,20 +48,20 @@ const MemberItem: React.FC<MemberItemProps> = ({ member, isHost }) => {
       </View>
 
       <View style={styles.memberInfo}>
-        <Text style={[styles.memberName, { color: theme['primary-font'] }]} >
+        <Text style={[styles.memberName, { color: theme['c-font'] }]} >
           {member.name}
           {isHost && (
-            <Text style={[styles.hostBadge, { color: theme.success }]} > 房主</Text>
+            <Text style={[styles.hostBadge, { color: theme['c-primary-font'] }]} > 房主</Text>
           )}
         </Text>
-        <Text style={[styles.memberStatus, { color: theme['secondary-font'] }]} >
+        <Text style={[styles.memberStatus, { color: theme['c-500'] }]} >
           {member.isOnline ? '在线' : '离线'}
         </Text>
       </View>
 
       {member.role === 'admin' && (
-        <View style={[styles.roleBadge, { backgroundColor: theme.warning }]} >
-          <Text style={styles.roleText}>管理</Text>
+        <View style={[styles.roleBadge, { backgroundColor: theme['c-button-background'] }]} >
+          <Text style={[styles.roleText, { color: theme['c-button-font'] }]}>管理</Text>
         </View>
       )}
     </View>
@@ -182,16 +182,16 @@ const RoomDetail: React.FC<Props> = ({ componentId, roomId }) => {
   }, [currentRoom])
 
   const renderMessage = useCallback(({ item }: { item: LX.ListenTogether.ChatMessage }) => (
-    <View style={[styles.messageItem, { backgroundColor: theme.secondary }]} >
+    <View style={[styles.messageItem, { backgroundColor: theme['c-primary-light-100-alpha-300'] }]} >
       <View style={styles.messageHeader}>
-        <Text style={[styles.senderName, { color: theme['primary-font'] }]} >
+        <Text style={[styles.senderName, { color: theme['c-font'] }]} >
           {item.senderName}
         </Text>
-        <Text style={[styles.messageTime, { color: theme['secondary-font'] }]} >
+        <Text style={[styles.messageTime, { color: theme['c-500'] }]} >
           {new Date(item.timestamp).toLocaleTimeString()}
         </Text>
       </View>
-      <Text style={[styles.messageContent, { color: theme['primary-font'] }]} >
+      <Text style={[styles.messageContent, { color: theme['c-font'] }]} >
         {item.content}
       </Text>
     </View>
@@ -226,38 +226,40 @@ const RoomDetail: React.FC<Props> = ({ componentId, roomId }) => {
   return (
     <PageContent style={styles.container}>
       {/* 顶部导航 */}
-      <View style={[styles.navBar, { borderBottomColor: theme.border }]} >
+      <View style={[styles.navBar, { borderBottomColor: theme['c-primary-light-100-alpha-300'] }]} >
         <TouchableOpacity onPress={handleBack} style={styles.backBtn}>
-          <Icon name='arrow-left' size={24} color={theme['primary-font']} />
+          <Icon name='arrow-left' size={24} color={theme['c-font']} />
         </TouchableOpacity>
-        <Text style={[styles.navTitle, { color: theme['primary-font'] }]} >
+        <Text style={[styles.navTitle, { color: theme['c-font'] }]} >
           {currentRoom?.name ?? '房间'}
         </Text>
         <TouchableOpacity onPress={handleLeaveOrDissolve} style={styles.syncBtn}>
-          <Icon name='exit2' size={20} color={isHost ? theme.danger ?? '#f44' : theme['secondary-font']} />
+          <Icon name='exit2' size={20} color={isHost ? theme['c-error'] ?? '#f44' : theme['c-font']} />
         </TouchableOpacity>
       </View>
 
       {/* 房间信息 */}
       {currentRoom && (
-        <View style={[styles.roomInfo, { backgroundColor: theme.secondary }]} >
-          <View style={styles.roomInfoRow}>
-            <Icon name='account' size={16} color={theme['secondary-font']} />
-            <Text style={[styles.roomInfoText, { color: theme['secondary-font'] }]} >
-              {currentRoom.currentMembers}/{currentRoom.maxMembers} 人
-            </Text>
-          </View>
-          <View style={styles.roomInfoRow}>
-            <Icon name='account-circle' size={16} color={theme['secondary-font']} />
-            <Text style={[styles.roomInfoText, { color: theme['secondary-font'] }]} >
-              房主: {currentRoom.hostName}
-            </Text>
+        <View style={styles.roomInfo} >
+          <View style={[styles.roomInfoContainer, { backgroundColor: theme['c-primary-light-100-alpha-300'] }]}>
+            <View style={styles.roomInfoRow}>
+              <Icon name='account' size={16} color={theme['c-500']} />
+              <Text style={[styles.roomInfoText, { color: theme['c-font'] }]} >
+                {currentRoom.currentMembers}/{currentRoom.maxMembers} 人
+              </Text>
+            </View>
+            <View style={styles.roomInfoRow}>
+              <Icon name='account-circle' size={16} color={theme['c-500']} />
+              <Text style={[styles.roomInfoText, { color: theme['c-font'] }]} >
+                房主: {currentRoom.hostName}
+              </Text>
+            </View>
           </View>
         </View>
       )}
 
       {/* 标签栏 */}
-      <View style={[styles.tabBar, { borderBottomColor: theme.border }]} >
+      <View style={[styles.tabBar, { borderBottomColor: theme['c-primary-light-100-alpha-300'] }]} >
         {[
           { key: 'chat' as const, label: '聊天', icon: 'message-text' },
           { key: 'members' as const, label: '成员', icon: 'account-group' },
@@ -267,19 +269,19 @@ const RoomDetail: React.FC<Props> = ({ componentId, roomId }) => {
             key={tab.key}
             style={[
               styles.tabItem,
-              activeTab === tab.key && { borderBottomColor: theme.primary },
+              activeTab === tab.key && { borderBottomColor: theme['c-primary-font'] },
             ]}
             onPress={() => setActiveTab(tab.key)}
           >
             <Icon
               name={tab.icon}
               size={18}
-              color={activeTab === tab.key ? theme.primary : theme['secondary-font']}
+              color={activeTab === tab.key ? theme['c-primary-font'] : theme['c-500']}
             />
             <Text
               style={[
                 styles.tabText,
-                { color: activeTab === tab.key ? theme.primary : theme['secondary-font'] },
+                { color: activeTab === tab.key ? theme['c-primary-font'] : theme['c-500'] },
               ]}
             >
               {tab.label}
@@ -300,22 +302,22 @@ const RoomDetail: React.FC<Props> = ({ componentId, roomId }) => {
               inverted={false}
               showsVerticalScrollIndicator={false}
             />
-            <View style={[styles.inputContainer, { backgroundColor: theme.secondary, borderTopColor: theme.border }]} >
+            <View style={[styles.inputContainer, { backgroundColor: theme['c-content-background'], borderTopColor: theme['c-primary-light-100-alpha-300'] }]} >
               <TextInput
-                style={[styles.input, { color: theme['primary-font'], backgroundColor: theme.primary }]}
+                style={[styles.input, { color: theme['c-font'], backgroundColor: theme['c-main-background'] }]}
                 value={messageInput}
                 onChangeText={setMessageInput}
                 placeholder='说点什么...'
-                placeholderTextColor={theme['secondary-font']}
+                placeholderTextColor={theme['c-500']}
                 multiline
                 maxLength={200}
               />
               <TouchableOpacity
-                style={[styles.sendBtn, { backgroundColor: messageInput.trim() ? theme.primary : theme.disabled }]}
+                style={[styles.sendBtn, { backgroundColor: messageInput.trim() ? theme['c-button-background'] : theme['c-primary-light-100-alpha-300'] }]}
                 onPress={handleSendMessage}
                 disabled={!messageInput.trim()}
               >
-                <Icon name='send' size={18} color='#fff' />
+                <Icon name='send' size={18} color={messageInput.trim() ? theme['c-button-font'] : theme['c-500']} />
               </TouchableOpacity>
             </View>
           </>
@@ -341,32 +343,33 @@ const RoomDetail: React.FC<Props> = ({ componentId, roomId }) => {
             {/* 操作按钮 */}
             <View style={styles.playlistActions}>
               <TouchableOpacity
-                style={[styles.actionBtn, { backgroundColor: theme.primary }]}
+                style={[styles.actionBtn, { backgroundColor: theme['c-button-background'] }]}
                 onPress={handleUploadPlaylist}
               >
-                <Icon name='upload' size={16} color='#fff' />
-                <Text style={styles.actionBtnText}>上传歌单</Text>
+                <Icon name='upload' size={16} color={theme['c-button-font']} />
+                <Text style={[styles.actionBtnText, { color: theme['c-button-font'] }]}>上传歌单</Text>
               </TouchableOpacity>
               <TouchableOpacity
-                style={[styles.actionBtn, { backgroundColor: theme.secondary }]}
+                style={[styles.actionBtn, { backgroundColor: theme['c-primary-light-100-alpha-300'] }]}
                 onPress={handleAddSong}
               >
-                <Icon name='plus' size={16} color={theme['primary-font']} />
-                <Text style={[styles.actionBtnText, { color: theme['primary-font'] }]}>添加歌曲</Text>
+                <Icon name='plus' size={16} color={theme['c-font']} />
+                <Text style={[styles.actionBtnText, { color: theme['c-font'] }]}>添加歌曲</Text>
               </TouchableOpacity>
             </View>
 
             {/* 当前播放 */}
             {currentRoom?.playbackState?.currentSong && (
-              <View style={[styles.currentSongSection, { borderBottomColor: theme.border }]}>
-                <Text style={[styles.sectionTitle, { color: theme['secondary-font'] }]}>正在播放</Text>
-                <View style={[styles.currentSongItem, { backgroundColor: theme.primary + '20' }]}>
-                  <Text style={[styles.songName, { color: theme.primary, fontWeight: '600' }]}>
-                    {currentRoom.playbackState.currentSong.name}
-                  </Text>
-                  <Text style={[styles.singerName, { color: theme['secondary-font'] }]}>
-                    {currentRoom.playbackState.currentSong.singer}
-                  </Text>
+              <View style={[styles.currentSongSection, { borderBottomColor: theme['c-primary-light-100-alpha-300'] }]}>
+                <Text style={[styles.sectionTitle, { color: theme['c-500'] }]}>正在播放</Text>
+                <View style={[styles.listItem, { backgroundColor: theme['c-primary-background-hover'], borderRadius: 8 }]}>
+                    <Icon style={styles.listSn} name="play-outline" size={13} color={theme['c-primary-font']} />
+                    <View style={styles.listItemInfo}>
+                      <Text style={{ color: theme['c-primary-font'], fontWeight: '600' }}>{currentRoom.playbackState.currentSong.name}</Text>
+                      <View style={styles.listItemSingle}>
+                        <Text style={{ fontSize: 11, color: theme['c-primary-alpha-200'] }}>{currentRoom.playbackState.currentSong.singer}</Text>
+                      </View>
+                    </View>
                 </View>
               </View>
             )}
@@ -374,17 +377,22 @@ const RoomDetail: React.FC<Props> = ({ componentId, roomId }) => {
             {/* 待播放队列 */}
             {currentRoom?.playbackState?.queue && currentRoom.playbackState.queue.length > 0 && (
               <View style={styles.queueSection}>
-                <Text style={[styles.sectionTitle, { color: theme['secondary-font'] }]}>
+                <Text style={[styles.sectionTitle, { color: theme['c-500'] }]}>
                   待播放 ({currentRoom.playbackState.queue.length})
                 </Text>
                 {currentRoom.playbackState.queue.map((item, index) => (
-                  <View key={`queue-${index}`} style={[styles.queueItem, { backgroundColor: theme.secondary }]}>
-                    <Text style={[styles.songName, { color: theme['primary-font'] }]}>
-                      {item.name}
-                    </Text>
-                    <Text style={[styles.singerName, { color: theme['secondary-font'] }]}>
-                      {item.singer}
-                    </Text>
+                  <View key={`queue-${index}`} style={[styles.listItem, { backgroundColor: theme['c-primary-light-100-alpha-300'], borderRadius: 6, marginBottom: 6 }]}>
+                    <Text style={[styles.listSn, { color: theme['c-300'] }]} size={13}>{index + 1}</Text>
+                    <View style={styles.listItemInfo}>
+                      <Text style={{ color: theme['c-font'] }}>
+                        {item.name}
+                      </Text>
+                      <View style={styles.listItemSingle}>
+                        <Text style={{ fontSize: 11, color: theme['c-500'] }}>
+                          {item.singer}
+                        </Text>
+                      </View>
+                    </View>
                   </View>
                 ))}
               </View>
@@ -393,7 +401,7 @@ const RoomDetail: React.FC<Props> = ({ componentId, roomId }) => {
             {/* 播放列表 */}
             {currentRoom?.playbackState?.playlist && currentRoom.playbackState.playlist.length > 0 ? (
               <View style={styles.playlistSection}>
-                <Text style={[styles.sectionTitle, { color: theme['secondary-font'] }]}>
+                <Text style={[styles.sectionTitle, { color: theme['c-500'] }]}>
                   播放列表 ({currentRoom.playbackState.playlist.length})
                 </Text>
                 <FlatList
@@ -402,20 +410,28 @@ const RoomDetail: React.FC<Props> = ({ componentId, roomId }) => {
                   renderItem={({ item, index }) => (
                     <TouchableOpacity
                       style={[
-                        styles.playlistItem,
+                        styles.listItem,
                         index === currentRoom.playbackState?.currentIndex && {
-                          backgroundColor: theme.primary + '20',
+                          backgroundColor: theme['c-primary-background-hover'],
                         },
                       ]}
                       onPress={() => canControlPlayback && changeSong(index)}
                       disabled={!canControlPlayback}
                     >
-                      <Text style={[styles.songName, { color: theme['primary-font'] }]} >
-                        {item.name}
-                      </Text>
-                      <Text style={[styles.singerName, { color: theme['secondary-font'] }]} >
-                        {item.singer}
-                      </Text>
+                      {index === currentRoom.playbackState?.currentIndex ?
+                        <Icon style={styles.listSn} name="play-outline" size={13} color={theme['c-primary-font']} /> :
+                        <Text style={styles.listSn} size={13} color={theme['c-300']}>{index + 1}</Text>
+                      }
+                      <View style={styles.listItemInfo}>
+                        <Text style={{ color: index === currentRoom.playbackState?.currentIndex ? theme['c-primary-font'] : theme['c-font'] }}>
+                          {item.name}
+                        </Text>
+                        <View style={styles.listItemSingle}>
+                          <Text style={{ fontSize: 11, color: index === currentRoom.playbackState?.currentIndex ? theme['c-primary-alpha-200'] : theme['c-500'] }}>
+                            {item.singer}
+                          </Text>
+                        </View>
+                      </View>
                     </TouchableOpacity>
                   )}
                   showsVerticalScrollIndicator={false}
@@ -423,8 +439,8 @@ const RoomDetail: React.FC<Props> = ({ componentId, roomId }) => {
               </View>
             ) : (
               <View style={styles.emptyPlaylist}>
-                <Icon name='playlist-music' size={48} color={theme['secondary-font']} />
-                <Text style={[styles.emptyText, { color: theme['secondary-font'] }]} >
+                <Icon name='playlist-music' size={48} color={theme['c-500']} />
+                <Text style={[styles.emptyText, { color: theme['c-500'] }]} >
                   播放列表为空
                 </Text>
               </View>
@@ -462,10 +478,12 @@ const styles = StyleSheet.create({
     marginRight: -8,
   },
   roomInfo: {
+    paddingHorizontal: 16,
+    paddingTop: 12,
+  },
+  roomInfoContainer: {
     flexDirection: 'row',
     padding: 12,
-    marginHorizontal: 12,
-    marginTop: 12,
     borderRadius: 8,
   },
   roomInfoRow: {
@@ -550,9 +568,9 @@ const styles = StyleSheet.create({
   memberItem: {
     flexDirection: 'row',
     alignItems: 'center',
-    padding: 12,
-    borderRadius: 8,
-    marginBottom: 8,
+    paddingVertical: 12,
+    paddingHorizontal: 16,
+    borderBottomWidth: 1,
   },
   memberAvatar: {
     marginRight: 12,
@@ -636,27 +654,26 @@ const styles = StyleSheet.create({
     marginBottom: 8,
     textTransform: 'uppercase',
   },
-  currentSongItem: {
-    padding: 12,
-    borderRadius: 8,
+  listItem: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    paddingRight: 2,
+    height: 54,
   },
-  queueItem: {
-    padding: 10,
-    borderRadius: 6,
-    marginBottom: 6,
+  listSn: {
+    width: 38,
+    textAlign: 'center',
+    paddingLeft: 3,
+    paddingRight: 3,
   },
-  playlistItem: {
-    padding: 12,
-    borderRadius: 8,
-    marginBottom: 8,
+  listItemInfo: {
+    flexGrow: 1,
+    flexShrink: 1,
+    paddingRight: 2,
   },
-  songName: {
-    fontSize: 14,
-    fontWeight: '500',
-  },
-  singerName: {
-    fontSize: 12,
-    marginTop: 2,
+  listItemSingle: {
+    paddingTop: 3,
+    flexDirection: 'row',
   },
   emptyPlaylist: {
     flex: 1,
