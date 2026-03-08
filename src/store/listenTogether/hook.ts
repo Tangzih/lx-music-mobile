@@ -3,7 +3,7 @@
  */
 
 import { useState, useEffect, useCallback, useRef } from 'react'
-import { getState, setState as setGlobalState } from './state'
+import { getState, setState as setGlobalState, subscribe } from './state'
 import type { ListenTogetherState } from './state'
 import {
   setConnectionStatus,
@@ -205,17 +205,8 @@ export const useListenTogetherState = () => {
   const [state, setLocalState] = useState<ListenTogetherState>(getState())
 
   useEffect(() => {
-    // 模拟状态订阅
-    const interval = setInterval(() => {
-      const currentState = getState()
-      // 浅比较，如果状态变化则更新
-      if (JSON.stringify(currentState) !== JSON.stringify(state)) {
-        setLocalState(currentState)
-      }
-    }, 100)
-
-    return () => clearInterval(interval)
-  }, [state])
+    return subscribe(setLocalState)
+  }, [])
 
   return state
 }

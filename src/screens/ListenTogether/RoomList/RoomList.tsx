@@ -12,6 +12,7 @@ import { useTheme } from '@/store/theme/hook'
 import { useStatusbarHeight } from '@/store/common/hook'
 import { disconnectService } from '@/store/listenTogether/hook'
 import Text from '@/components/common/Text'
+import PlayerBar from '@/components/player/PlayerBar'
 import { Icon } from '@/components/common/Icon'
 import Button from '@/components/common/Button'
 import PageContent from '@/components/PageContent'
@@ -243,6 +244,8 @@ const RoomList: React.FC<Props> = ({ componentId }) => {
           </View>
         }
       />
+      
+      <PlayerBar />
     </PageContent>
   )
 }

@@ -9,6 +9,7 @@ import {
   Image,
   ActionSheetIOS,
   Platform,
+  Modal,
 } from 'react-native'
 import { Navigation } from 'react-native-navigation'
 import { useListenTogether, useCurrentRoom, useRoomMembers, useRoomMessages, useConnectionStatus, useIsInRoom, useListenTogetherState } from '@/store/listenTogether'
@@ -20,7 +21,10 @@ import Text from '@/components/common/Text'
 import { Icon } from '@/components/common/Icon'
 import Button from '@/components/common/Button'
 import PageContent from '@/components/PageContent'
-import { getListMusics } from '@/utils/data'
+import { getListMusics } from '@/core/list'
+import { useMyList } from '@/store/list/hook'
+import PlayerBar from '@/components/player/PlayerBar'
+import CheckBox from '@/components/common/CheckBox'
 
 interface Props {
   componentId: string
@@ -75,6 +79,9 @@ const RoomDetail: React.FC<Props> = ({ componentId, roomId }) => {
   const [messageInput, setMessageInput] = useState('')
   const [activeTab, setActiveTab] = useState<'chat' | 'members' | 'playlist'>('chat')
   const [hasJoined, setHasJoined] = useState(false)
+  const [showListModal, setShowListModal] = useState(false)
+  const [isOverwritePlaylist, setIsOverwritePlaylist] = useState(false)
+  const myLists = useMyList()
 
   const {
     leaveRoom,
@@ -88,6 +95,7 @@ const RoomDetail: React.FC<Props> = ({ componentId, roomId }) => {
     seek,
     uploadPlaylist,
     addToQueue,
+    addToPlaylist,
   } = useListenTogether()
   const ltState = useListenTogetherState()
   const currentRoom = useCurrentRoom()
@@ -213,27 +221,44 @@ const RoomDetail: React.FC<Props> = ({ componentId, roomId }) => {
   // 房主始终可以控制，如果 allowMemberControl 为 true 则成员也可以控制
   const canControlPlayback = currentRoom?.allowMemberControl === true || currentRoom?.hostId != null
 
-  // 上传本地歌单到房间播放列表
-  const handleUploadPlaylist = useCallback(async () => {
+  // 打开上传歌单弹窗
+  const handleOpenPlaylistModal = useCallback(() => {
     if (!canControlPlayback) return
-
-    // 获取本地收藏列表的歌曲
-    try {
-      const defaultListMusics = await getListMusics('default')
-      if (defaultListMusics && defaultListMusics.length > 0) {
-        uploadPlaylist(defaultListMusics)
-      }
-    } catch (err) {
-      console.error('Failed to upload playlist:', err)
-    }
-  }, [canControlPlayback, uploadPlaylist])
-
-  // 添加歌曲到播放列表
-  const handleAddSong = useCallback(() => {
-    if (!canControlPlayback) return
-    // TODO: 打开歌曲选择器
-    console.log('Add song to playlist')
+    setShowListModal(true)
   }, [canControlPlayback])
+
+  // 上传选定的本地歌单到房间播放列表
+  const handleSelectPlaylist = useCallback((listInfo: LX.List.MyListInfo) => {
+    if (!canControlPlayback) return
+
+    const actionText = isOverwritePlaylist ? '此操作会覆盖掉所有歌曲，确定吗？' : '是否追加到播放列表？'
+    
+    Alert.alert(
+      '提示',
+      actionText,
+      [
+        { text: '取消', style: 'cancel' },
+        { 
+          text: '确定', 
+          onPress: async () => {
+             setShowListModal(false)
+             try {
+               const listMusics = await getListMusics(listInfo.id)
+               if (listMusics && listMusics.length > 0) {
+                 if (isOverwritePlaylist) {
+                   uploadPlaylist(listMusics)
+                 } else {
+                   addToPlaylist(listMusics as any)
+                 }
+               }
+             } catch (err) {
+               console.error('Failed to upload/append playlist:', err)
+             }
+          }
+        }
+      ]
+    )
+  }, [canControlPlayback, isOverwritePlaylist, uploadPlaylist, addToPlaylist])
 
   return (
     <PageContent style={styles.container}>
@@ -356,17 +381,10 @@ const RoomDetail: React.FC<Props> = ({ componentId, roomId }) => {
             <View style={styles.playlistActions}>
               <TouchableOpacity
                 style={[styles.actionBtn, { backgroundColor: theme['c-button-background'] }]}
-                onPress={handleUploadPlaylist}
+                onPress={handleOpenPlaylistModal}
               >
                 <Icon name='add_folder' size={16} color={theme['c-button-font']} />
                 <Text style={[styles.actionBtnText, { color: theme['c-button-font'] }]}>上传歌单</Text>
-              </TouchableOpacity>
-              <TouchableOpacity
-                style={[styles.actionBtn, { backgroundColor: theme['c-primary-light-100-alpha-300'] }]}
-                onPress={handleAddSong}
-              >
-                <Icon name='add-music' size={16} color={theme['c-font']} />
-                <Text style={[styles.actionBtnText, { color: theme['c-font'] }]}>添加歌曲</Text>
               </TouchableOpacity>
             </View>
 
@@ -460,6 +478,49 @@ const RoomDetail: React.FC<Props> = ({ componentId, roomId }) => {
           </View>
         )}
       </View>
+
+      {/* 歌单选择弹窗 */}
+      <Modal
+        visible={showListModal}
+        transparent
+        animationType="fade"
+        onRequestClose={() => setShowListModal(false)}
+      >
+        <TouchableOpacity 
+          style={styles.modalOverlay} 
+          activeOpacity={1} 
+          onPress={() => setShowListModal(false)}
+        >
+          <View style={[styles.modalContent, { backgroundColor: theme['c-content-background'] }]}>
+            <Text style={[styles.modalTitle, { color: theme['c-font'] }]}>选择要上传的歌单</Text>
+            
+            <ScrollView style={styles.modalList} showsVerticalScrollIndicator={false}>
+              {myLists.map(list => (
+                <TouchableOpacity
+                  key={list.id}
+                  style={[styles.modalListItem, { borderBottomColor: theme['c-primary-light-100-alpha-300'] }]}
+                  onPress={() => handleSelectPlaylist(list)}
+                >
+                  <Icon name="list-music" size={20} color={theme['c-500']} />
+                  <Text style={{ marginLeft: 12, fontSize: 14, color: theme['c-font'] }}>
+                    {list.name}
+                  </Text>
+                </TouchableOpacity>
+              ))}
+            </ScrollView>
+
+            <View style={styles.modalAction}>
+               <CheckBox 
+                 check={isOverwritePlaylist} 
+                 onChange={setIsOverwritePlaylist}
+                 label="覆盖所有歌曲"
+               />
+            </View>
+          </View>
+        </TouchableOpacity>
+      </Modal>
+
+      <PlayerBar />
     </PageContent>
   )
 }
@@ -467,6 +528,37 @@ const RoomDetail: React.FC<Props> = ({ componentId, roomId }) => {
 const styles = StyleSheet.create({
   container: {
     flex: 1,
+  },
+  modalOverlay: {
+    flex: 1,
+    backgroundColor: 'rgba(0,0,0,0.5)',
+    justifyContent: 'center',
+    alignItems: 'center',
+  },
+  modalContent: {
+    width: '80%',
+    maxHeight: '70%',
+    borderRadius: 12,
+    padding: 20,
+  },
+  modalTitle: {
+    fontSize: 16,
+    fontWeight: '600',
+    marginBottom: 16,
+    textAlign: 'center',
+  },
+  modalList: {
+    maxHeight: 300,
+  },
+  modalListItem: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    paddingVertical: 12,
+    borderBottomWidth: 1,
+  },
+  modalAction: {
+    marginTop: 16,
+    paddingTop: 16,
   },
   navBar: {
     flexDirection: 'row',
