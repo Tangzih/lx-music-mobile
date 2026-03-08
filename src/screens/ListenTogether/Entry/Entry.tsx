@@ -14,6 +14,7 @@ import { useListenTogether, useConnectionStatus } from '@/store/listenTogether'
 import { initService, disconnectService, getService } from '@/store/listenTogether/hook'
 import { setComponentId } from '@/core/common'
 import { COMPONENT_IDS } from '@/config/constant'
+import { setInRoom, setCurrentRoom } from '@/store/listenTogether/action'
 import Text from '@/components/common/Text'
 import { Icon } from '@/components/common/Icon'
 import Button from '@/components/common/Button'
@@ -23,6 +24,7 @@ import { ROOM_DETAIL_SCREEN } from '../RoomDetail/screenNames'
 import { LISTEN_TOGETHER_ENTRY_SCREEN } from './screenNames'
 import { setConnectMode } from '@/store/listenTogether/action'
 import { canDrawOverlays, requestOverlayPermission } from '@/utils/nativeModules/utils'
+import PlayerBar from '@/components/player/PlayerBar'
 
 interface Props {
   componentId: string
@@ -160,15 +162,34 @@ const Entry: React.FC<Props> = ({ componentId }) => {
       await initService(`tcp://127.0.0.1:${portNum}`, userId)
       
       const service = getService()
+      // Get the real room ID from the host server
+      const roomState = listenTogetherHostServer.getRoomState()
+      const roomId = roomState?.id ?? 'local_room'
+
       if (service) {
-        service.joinRoom({ roomId: 'local_room' })
+        service.joinRoom({ roomId })
       }
       
+      // Immediately update state so MiniBar/overlay can respond
+      if (roomState) {
+        setCurrentRoom({
+          ...roomState,
+          hostName: localName.trim(),
+          maxMembers: 50,
+          currentMembers: 1,
+          isPublic: false,
+          hasPassword: false,
+          allowMemberControl: true,
+        } as any)
+        setInRoom(true)
+      }
+
       setConnectMode('local')
 
       Navigation.push(componentId, {
         component: {
           name: ROOM_DETAIL_SCREEN,
+          passProps: { roomId },
           options: {
             topBar: {
               visible: false,
@@ -210,15 +231,17 @@ const Entry: React.FC<Props> = ({ componentId }) => {
           <Text style={[styles.sectionTitle, { color: theme['c-font'] }]}>加入服务器</Text>
 
           <View style={styles.modeTabs}>
-            <TouchableOpacity 
-              style={[styles.modeTab, connectMode === 'server' && { backgroundColor: theme['c-button-background'] }]} 
+            <TouchableOpacity
+              style={[styles.modeTab, connectMode === 'server' && { backgroundColor: theme['c-button-background'] }]}
               onPress={() => setConnectMode('server')}
+              disabled={isConnected}
             >
               <Text style={{ color: connectMode === 'server' ? theme['c-button-font'] : theme['c-font'] }}>服务器模式(有房间列表)</Text>
             </TouchableOpacity>
-            <TouchableOpacity 
-              style={[styles.modeTab, connectMode === 'local' && { backgroundColor: theme['c-button-background'] }]} 
+            <TouchableOpacity
+              style={[styles.modeTab, connectMode === 'local' && { backgroundColor: theme['c-button-background'] }]}
               onPress={() => setConnectMode('local')}
+              disabled={isConnected}
             >
               <Text style={{ color: connectMode === 'local' ? theme['c-button-font'] : theme['c-font'] }}>直连自建房(IP:端口)</Text>
             </TouchableOpacity>
@@ -231,7 +254,7 @@ const Entry: React.FC<Props> = ({ componentId }) => {
                 styles.input,
                 {
                   color: theme['c-font'],
-                  backgroundColor: theme['c-main-background'],
+                  backgroundColor: isConnected ? theme['c-primary-light-100-alpha-300'] : theme['c-main-background'],
                   borderColor: theme['c-primary-light-100-alpha-300'],
                 },
               ]}
@@ -242,6 +265,7 @@ const Entry: React.FC<Props> = ({ componentId }) => {
               autoCapitalize="none"
               autoCorrect={false}
               keyboardType="url"
+              editable={!isConnected}
             />
 
             {/* History dropdown */}
@@ -295,7 +319,7 @@ const Entry: React.FC<Props> = ({ componentId }) => {
                   })}
                 >
                   <Text style={[styles.buttonText, { color: theme['c-button-font'] }]}>
-                    {isInRoom ? '重新进入房间' : '进入房间列表'}
+                    {isInRoom ? '返回房间' : '进入房间列表'}
                   </Text>
                 </Button>
                 <Button
@@ -343,7 +367,7 @@ const Entry: React.FC<Props> = ({ componentId }) => {
                 styles.input,
                 {
                   color: theme['c-font'],
-                  backgroundColor: theme['c-main-background'],
+                  backgroundColor: isConnected ? theme['c-primary-light-100-alpha-300'] : theme['c-main-background'],
                   borderColor: theme['c-primary-light-100-alpha-300'],
                   marginBottom: 12,
                 },
@@ -352,13 +376,14 @@ const Entry: React.FC<Props> = ({ componentId }) => {
               placeholderTextColor={theme['c-primary-dark-100-alpha-600']}
               value={localName}
               onChangeText={setLocalName}
+              editable={!isConnected}
             />
             <TextInput
               style={[
                 styles.input,
                 {
                   color: theme['c-font'],
-                  backgroundColor: theme['c-main-background'],
+                  backgroundColor: isConnected ? theme['c-primary-light-100-alpha-300'] : theme['c-main-background'],
                   borderColor: theme['c-primary-light-100-alpha-300'],
                 },
               ]}
@@ -367,6 +392,7 @@ const Entry: React.FC<Props> = ({ componentId }) => {
               value={localPort}
               onChangeText={setLocalPort}
               keyboardType="number-pad"
+              editable={!isConnected}
             />
           </View>
 
@@ -387,7 +413,7 @@ const Entry: React.FC<Props> = ({ componentId }) => {
                     },
                   })}
                 >
-                  <Text style={[styles.buttonText, { color: theme['c-button-font'] }]}>重新进入房间</Text>
+                  <Text style={[styles.buttonText, { color: theme['c-button-font'] }]}>返回房间</Text>
                 </Button>
                 <Button
                   style={[styles.button, styles.disconnectBtn, { backgroundColor: theme['c-error'] }]}
@@ -440,6 +466,7 @@ const Entry: React.FC<Props> = ({ componentId }) => {
         )}
 
       </ScrollView>
+      <PlayerBar />
     </PageContent>
   )
 }

@@ -77,6 +77,10 @@ class ListenTogetherHostServer extends Event {
     this.roomState = null
   }
 
+  getRoomState(): LX.ListenTogether.RoomInfo | null {
+    return this.roomState
+  }
+
   private handleClientDisconnect(clientId: string) {
     this.clients.delete(clientId)
     let disconnectedMemberId: string | null = null
@@ -198,6 +202,36 @@ class ListenTogetherHostServer extends Event {
         }
         case 'change_song': {
           this.broadcast('change_song', data)
+          break
+        }
+        case 'upload_playlist': {
+          if (!this.playbackState) {
+            this.playbackState = {
+              status: 'paused',
+              currentTime: 0,
+              timestamp: Date.now(),
+            } as any
+          }
+          this.playbackState!.playlist = data.playlist
+          this.broadcast('playback_state', { state: this.playbackState, triggeredBy: data.triggeredBy })
+          break
+        }
+        case 'add_to_playlist': {
+          if (!this.playbackState) {
+            this.playbackState = {
+              playlist: [],
+              status: 'paused',
+              currentTime: 0,
+              timestamp: Date.now(),
+            } as any
+          }
+          if (!this.playbackState.playlist) this.playbackState.playlist = []
+          if (Array.isArray(data.musicInfo)) {
+             this.playbackState.playlist.push(...data.musicInfo)
+          } else {
+             this.playbackState.playlist.push(data.musicInfo)
+          }
+          this.broadcast('playback_state', { state: this.playbackState, triggeredBy: data.triggeredBy })
           break
         }
         case 'send_message': {

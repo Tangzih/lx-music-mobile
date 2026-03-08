@@ -10,6 +10,7 @@ import { createStyle } from '@/utils/tools'
 // import { useSettingValue } from '@/store/setting/hook'
 import { useTheme } from '@/store/theme/hook'
 import { useSettingValue } from '@/store/setting/hook'
+import ListenTogetherMiniBar from '@/components/ListenTogetherMiniBar'
 
 
 export default memo(({ isHome = false }: { isHome?: boolean }) => {
@@ -19,17 +20,20 @@ export default memo(({ isHome = false }: { isHome?: boolean }) => {
   const autoHidePlayBar = useSettingValue('common.autoHidePlayBar')
 
   const playerComponent = useMemo(() => (
-    <View style={{ ...styles.container, backgroundColor: theme['c-content-background'] }}>
-      <Pic isHome={isHome} />
-      <View style={styles.center}>
-        <Title isHome={isHome} />
-        {/* <View style={{ ...styles.row, justifyContent: 'space-between' }}>
-          <PlayTime />
-        </View> */}
-        <PlayInfo isHome={isHome} />
-      </View>
-      <View style={styles.right}>
-        <ControlBtn />
+    <View style={{ backgroundColor: theme['c-content-background'] }}>
+      <ListenTogetherMiniBar />
+      <View style={styles.container}>
+        <Pic isHome={isHome} />
+        <View style={styles.center}>
+          <Title isHome={isHome} />
+          {/* <View style={{ ...styles.row, justifyContent: 'space-between' }}>
+            <PlayTime />
+          </View> */}
+          <PlayInfo isHome={isHome} />
+        </View>
+        <View style={styles.right}>
+          <ControlBtn />
+        </View>
       </View>
     </View>
   ), [theme, isHome])

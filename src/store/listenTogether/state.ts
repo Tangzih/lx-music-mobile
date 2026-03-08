@@ -44,14 +44,25 @@ export const initialState: ListenTogetherState = {
   connectMode: null,
 }
 
+let listeners: Array<(state: ListenTogetherState) => void> = []
+
+export const subscribe = (listener: (state: ListenTogetherState) => void) => {
+  listeners.push(listener)
+  return () => {
+    listeners = listeners.filter(l => l !== listener)
+  }
+}
+
 let state = { ...initialState }
 
 export const getState = () => state
 
 export const setState = (newState: Partial<ListenTogetherState>): void => {
   state = { ...state, ...newState }
+  listeners.forEach(listener => listener(state))
 }
 
 export const resetState = (): void => {
   state = { ...initialState }
+  listeners.forEach(listener => listener(state))
 }
