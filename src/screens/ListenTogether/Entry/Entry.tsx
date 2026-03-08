@@ -153,7 +153,15 @@ const Entry: React.FC<Props> = ({ componentId }) => {
       }
 
       Navigation.push(componentId, {
-        component: { name: ROOM_DETAIL_SCREEN },
+        component: {
+          name: ROOM_DETAIL_SCREEN,
+          options: {
+            topBar: {
+              visible: false,
+              drawBehind: true,
+            },
+          },
+        },
       })
     } catch (err) {
       Alert.alert('创建失败', err instanceof Error ? err.message : '无法创建本地服务器, 请确保端口未被占用。')
@@ -260,7 +268,15 @@ const Entry: React.FC<Props> = ({ componentId }) => {
                 <Button
                   style={[styles.button, { backgroundColor: theme['c-button-background'] }]}
                   onPress={() => Navigation.push(componentId, {
-                    component: { name: ROOM_LIST_SCREEN },
+                    component: {
+                      name: ROOM_LIST_SCREEN,
+                      options: {
+                        topBar: {
+                          visible: false,
+                          drawBehind: true,
+                        },
+                      },
+                    },
                   })}
                 >
                   <Text style={[styles.buttonText, { color: theme['c-button-font'] }]}>进入房间列表</Text>
