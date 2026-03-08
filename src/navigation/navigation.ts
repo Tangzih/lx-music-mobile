@@ -11,7 +11,11 @@ import {
 import {
   ROOM_LIST_SCREEN,
 } from '@/screens/ListenTogether/RoomList/screenNames'
+import {
+  ROOM_DETAIL_SCREEN,
+} from '@/screens/ListenTogether/RoomDetail/screenNames'
 import { LISTEN_TOGETHER_ENTRY_SCREEN } from '@/screens/ListenTogether/Entry/screenNames'
+import { getState as getListenTogetherState } from '@/store/listenTogether/state'
 
 import themeState from '@/store/theme/state'
 import { NAV_SHEAR_NATIVE_IDS } from '@/config/constant'
@@ -445,10 +449,21 @@ export function pushRoomListScreen(componentId: string) {
 export function pushListenTogetherEntryScreen(componentId: string) {
   requestAnimationFrame(() => {
     const theme = themeState.theme
+    const ltState = getListenTogetherState()
+
+    let screenName = LISTEN_TOGETHER_ENTRY_SCREEN
+    let passProps = {}
+    if (ltState.isInRoom && ltState.currentRoom) {
+      screenName = ROOM_DETAIL_SCREEN
+      passProps = { roomId: ltState.currentRoom.id }
+    } else if (ltState.isConnected && ltState.connectMode === 'server') {
+      screenName = ROOM_LIST_SCREEN
+    }
 
     void Navigation.push(componentId, {
       component: {
-        name: LISTEN_TOGETHER_ENTRY_SCREEN,
+        name: screenName,
+        passProps,
         options: {
           topBar: {
             visible: false,

@@ -3,6 +3,7 @@
  */
 
 import { getState, setState, resetState } from './state'
+import type { ListenTogetherState } from './state'
 
 /** 设置连接状态 */
 export const setConnectionStatus = (isConnected: boolean): void => {
@@ -126,4 +127,9 @@ export const updateRoom = (roomId: string, updates: Partial<LX.ListenTogether.Ro
 /** 清空状态 */
 export const clearState = (): void => {
   resetState()
+}
+
+/** 设置连接模式 */
+export const setConnectMode = (connectMode: ListenTogetherState['connectMode']): void => {
+  setState({ connectMode })
 }
