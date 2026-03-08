@@ -51,7 +51,8 @@ export class ListenTogetherWebSocket extends Event {
 
       try {
         if (this.isTcp) {
-          const TcpSocket = require('react-native-tcp-socket').default
+          const tcpModule = require('react-native-tcp-socket')
+          const TcpSocket = tcpModule.default || tcpModule
           const [host, portStr] = this.url.replace('tcp://', '').split(':')
           
           this.ws = TcpSocket.createConnection(
