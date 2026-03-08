@@ -241,15 +241,15 @@ const Entry: React.FC<Props> = ({ componentId }) => {
           {/* Connection Status */}
           {isConnected && (
             <View style={styles.statusRow}>
-              <Icon name="check-circle" size={16} color={theme.success} />
-              <Text style={[styles.statusText, { color: theme.success }]}>已连接</Text>
+              <Icon name="check-circle" size={16} color={theme['c-success']} />
+              <Text style={[styles.statusText, { color: theme['c-success'] }]}>已连接</Text>
             </View>
           )}
 
           {error && (
             <View style={styles.statusRow}>
-              <Icon name="alert-circle" size={16} color={theme.error} />
-              <Text style={[styles.statusText, { color: theme.error }]}>{error}</Text>
+              <Icon name="alert-circle" size={16} color={theme['c-error']} />
+              <Text style={[styles.statusText, { color: theme['c-error'] }]}>{error}</Text>
             </View>
           )}
 
@@ -258,18 +258,18 @@ const Entry: React.FC<Props> = ({ componentId }) => {
             {isConnected ? (
               <>
                 <Button
-                  style={[styles.button, { backgroundColor: theme.primary }]}
+                  style={[styles.button, { backgroundColor: theme['c-button-background'] }]}
                   onPress={() => Navigation.push(componentId, {
                     component: { name: ROOM_LIST_SCREEN },
                   })}
                 >
-                  <Text style={styles.buttonText}>进入房间列表</Text>
+                  <Text style={[styles.buttonText, { color: theme['c-button-font'] }]}>进入房间列表</Text>
                 </Button>
                 <Button
-                  style={[styles.button, styles.disconnectBtn, { backgroundColor: theme.error }]}
+                  style={[styles.button, styles.disconnectBtn, { backgroundColor: theme['c-error'] }]}
                   onPress={handleDisconnect}
                 >
-                  <Text style={styles.buttonText}>断开连接</Text>
+                  <Text style={[styles.buttonText, { color: '#fff' }]}>断开连接</Text>
                 </Button>
               </>
             ) : (
@@ -277,12 +277,12 @@ const Entry: React.FC<Props> = ({ componentId }) => {
                 style={[
                   styles.button,
                   styles.fullButton,
-                  { backgroundColor: connecting ? theme.disabled : theme.primary },
+                  { backgroundColor: connecting ? 'rgba(0,0,0,0.2)' : theme['c-button-background'] },
                 ]}
                 onPress={handleConnect}
                 disabled={connecting}
               >
-                <Text style={styles.buttonText}>
+                <Text style={[styles.buttonText, { color: connecting ? theme['c-font'] : theme['c-button-font'] }]}>
                   {connecting ? '连接中...' : '连接'}
                 </Text>
               </Button>
@@ -338,11 +338,11 @@ const Entry: React.FC<Props> = ({ componentId }) => {
           </View>
 
           <Button
-            style={[styles.button, styles.fullButton, { backgroundColor: hosting ? theme.disabled : theme.primary }]}
+            style={[styles.button, styles.fullButton, { backgroundColor: hosting ? 'rgba(0,0,0,0.2)' : theme['c-button-background'] }]}
             onPress={handleCreateLocalRoom}
             disabled={hosting || isConnected}
           >
-            <Text style={styles.buttonText}>{hosting ? '创建中...' : '建房并进入'}</Text>
+            <Text style={[styles.buttonText, { color: hosting ? theme['c-font'] : theme['c-button-font'] }]}>{hosting ? '创建中...' : '建房并进入'}</Text>
           </Button>
         </View>
 
