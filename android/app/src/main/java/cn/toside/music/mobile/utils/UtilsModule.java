@@ -380,6 +380,8 @@ public class UtilsModule extends ReactContextBaseJavaModule {
         promise.reject("ERROR", e);
       }
     }).start();
+  }
+
   @ReactMethod
   public void canDrawOverlays(Promise promise) {
     if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.M) {
