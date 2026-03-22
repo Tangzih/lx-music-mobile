@@ -67,6 +67,7 @@ export default ({ componentId }: { componentId: string }) => {
   return (
     <View style={styles.container} pointerEvents="box-none">
       <Animated.View
+        pointerEvents="box-none"
         style={[
           styles.bubble,
           {
