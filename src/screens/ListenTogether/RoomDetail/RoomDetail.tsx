@@ -7,25 +7,25 @@ import {
   FlatList,
   TextInput,
   Image,
-  ActionSheetIOS,
   Platform,
   Modal,
   ActivityIndicator,
+  Alert,
 } from 'react-native'
 import { Navigation } from 'react-native-navigation'
-import { useListenTogether, useCurrentRoom, useRoomMembers, useRoomMessages, useConnectionStatus, useIsInRoom, useListenTogetherState } from '@/store/listenTogether'
-import { Alert } from 'react-native'
+import { useListenTogether, useCurrentRoom, useRoomMembers, useRoomMessages, useConnectionStatus, useListenTogetherState } from '@/store/listenTogether'
 import { useTheme } from '@/store/theme/hook'
 import { useStatusbarHeight } from '@/store/common/hook'
 import Text from '@/components/common/Text'
 import { Icon } from '@/components/common/Icon'
-import Button from '@/components/common/Button'
 import PageContent from '@/components/PageContent'
 import { getListMusics } from '@/core/list'
 import { useMyList } from '@/store/list/hook'
 import PlayerBar from '@/components/player/PlayerBar'
 import CheckBox from '@/components/common/CheckBox'
 import ListItem, { ITEM_HEIGHT } from '@/screens/Home/Views/Mylist/MusicList/ListItem'
+import { setComponentId } from '@/core/common'
+import { COMPONENT_IDS } from '@/config/constant'
 
 interface Props {
   componentId: string
@@ -88,6 +88,9 @@ const RoomDetail: React.FC<Props> = ({ componentId, roomId }) => {
   const [showListModal, setShowListModal] = useState(false)
   const [isOverwritePlaylist, setIsOverwritePlaylist] = useState(false)
   const [isImportingPlaylist, setIsImportingPlaylist] = useState(false)
+  // Context menu state
+  const [selectedSong, setSelectedSong] = useState<{ item: LX.Music.MusicInfo; index: number } | null>(null)
+  const [showAddToLocalModal, setShowAddToLocalModal] = useState(false)
   const myLists = useMyList()
 
   const {
@@ -95,14 +98,8 @@ const RoomDetail: React.FC<Props> = ({ componentId, roomId }) => {
     dissolveRoom,
     joinRoom,
     sendMessage,
-    sendReaction,
     changeSong,
-    play,
-    pause,
-    seek,
     uploadPlaylist,
-    addToQueue,
-    addToPlaylist,
   } = useListenTogether()
   const ltState = useListenTogetherState()
   const currentRoom = useCurrentRoom()
@@ -112,6 +109,12 @@ const RoomDetail: React.FC<Props> = ({ componentId, roomId }) => {
 
   // 判断当前用户是不是房主
   const isHost = !!currentRoom && !!ltState.userId && currentRoom.hostId === ltState.userId
+
+  // 注册 componentId，确保 DrawerLayoutAndroid 在返回时正确重绘
+  useEffect(() => {
+    setComponentId(COMPONENT_IDS.listenTogetherRoomDetail, componentId)
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [])
 
   useEffect(() => {
     // 本地建房模式下房主已在 Entry 加入房间，无需重复加入；其他情况正常加入
@@ -185,17 +188,15 @@ const RoomDetail: React.FC<Props> = ({ componentId, roomId }) => {
     }
   }, [messageInput, sendMessage])
 
-  const handleReaction = useCallback((emoji: string) => {
-    sendReaction(emoji)
-  }, [sendReaction])
+  const handleReaction = useCallback((_emoji: string) => {
+    // sendReaction(_emoji)
+  }, [])
 
   const handleSyncPlayback = useCallback(() => {
     if (!currentRoom?.playbackState) return
-
     // 同步播放状态
     const { currentSong, isPlaying, currentTime } = currentRoom.playbackState
     if (currentSong) {
-      // TODO: 播放指定歌曲
       console.log('syncPlayback', { currentSong, isPlaying, currentTime })
     }
   }, [currentRoom])
@@ -219,6 +220,66 @@ const RoomDetail: React.FC<Props> = ({ componentId, roomId }) => {
   // 判断当前用户是否可以控制播放
   // 房主始终可以控制，如果 allowMemberControl 为 true 则成员也可以控制
   const canControlPlayback = currentRoom?.allowMemberControl === true || currentRoom?.hostId != null
+
+  // 播放列表歌曲按下
+  const handlePlaylistItemPress = useCallback((item: LX.Music.MusicInfo, index: number) => {
+    if (canControlPlayback) changeSong(index)
+  }, [canControlPlayback, changeSong])
+
+  // 长按或点菜单按钮打开上下文菜单
+  const handlePlaylistItemMenu = useCallback((item: LX.Music.MusicInfo, index: number) => {
+    setSelectedSong({ item, index })
+    const options = ['播放', '从列表删除', '添加到本地歌单', '取消']
+    const destructiveIndex = 1
+
+    if (Platform.OS === 'ios') {
+      const { ActionSheetIOS: ASIOS } = require('react-native')
+      ASIOS.showActionSheetWithOptions(
+        { options, cancelButtonIndex: options.length - 1, destructiveButtonIndex: destructiveIndex },
+        (buttonIndex: number) => {
+          if (buttonIndex === 0) {
+            if (canControlPlayback) changeSong(index)
+          } else if (buttonIndex === 1) {
+            if (canControlPlayback) {
+              const playlist = currentRoom?.playbackState?.playlist ?? []
+              uploadPlaylist(playlist.filter((_, i) => i !== index))
+            }
+          } else if (buttonIndex === 2) {
+            setShowAddToLocalModal(true)
+          }
+        }
+      )
+    } else {
+      // Android: use Alert
+      Alert.alert(item.name, item.singer, [
+        {
+          text: '播放',
+          onPress: () => { if (canControlPlayback) changeSong(index) },
+        },
+        {
+          text: '从列表删除',
+          style: 'destructive',
+          onPress: () => {
+            if (!canControlPlayback) return
+            const playlist = currentRoom?.playbackState?.playlist ?? []
+            uploadPlaylist(playlist.filter((_, i) => i !== index))
+          },
+        },
+        {
+          text: '添加到本地歌单',
+          onPress: () => setShowAddToLocalModal(true),
+        },
+        { text: '取消', style: 'cancel' },
+      ])
+    }
+  }, [canControlPlayback, changeSong, currentRoom, uploadPlaylist])
+
+  // 将选中歌曲添加到指定本地歌单
+  const handleAddToLocalList = useCallback((listId: string) => {
+    if (!selectedSong) return
+    setShowAddToLocalModal(false)
+    void global.list_event.list_music_add(listId, [selectedSong.item], 'top')
+  }, [selectedSong])
 
   // 打开上传歌单弹窗
   const handleOpenPlaylistModal = useCallback(() => {
@@ -455,9 +516,9 @@ const RoomDetail: React.FC<Props> = ({ componentId, roomId }) => {
                       item={item}
                       index={index}
                       activeIndex={currentRoom.playbackState?.currentIndex ?? -1}
-                      onPress={() => { if (canControlPlayback) changeSong(index) }}
-                      onLongPress={() => {}}
-                      onShowMenu={() => {}}
+                      onPress={handlePlaylistItemPress}
+                      onLongPress={handlePlaylistItemMenu}
+                      onShowMenu={(songItem, songIndex) => handlePlaylistItemMenu(songItem, songIndex)}
                       selectedList={EMPTY_SELECTED}
                       rowInfo={FULL_ROW_INFO}
                       isShowAlbumName={false}
@@ -519,6 +580,39 @@ const RoomDetail: React.FC<Props> = ({ componentId, roomId }) => {
                  label="覆盖所有歌曲"
                />
             </View>
+          </View>
+        </View>
+      </Modal>
+
+      {/* 添加到本地歌单弹窗 */}
+      <Modal
+        visible={showAddToLocalModal}
+        transparent
+        animationType="fade"
+        onRequestClose={() => setShowAddToLocalModal(false)}
+      >
+        <View style={styles.modalOverlay} pointerEvents="box-none">
+          <TouchableOpacity
+            style={StyleSheet.absoluteFillObject}
+            activeOpacity={1}
+            onPress={() => setShowAddToLocalModal(false)}
+          />
+          <View style={[styles.modalContent, { backgroundColor: theme['c-content-background'] }]}>
+            <Text style={[styles.modalTitle, { color: theme['c-font'] }]}>选择本地歌单</Text>
+            <ScrollView style={styles.modalList} showsVerticalScrollIndicator={false}>
+              {myLists.map(list => (
+                <TouchableOpacity
+                  key={list.id}
+                  style={[styles.modalListItem, { borderBottomColor: theme['c-primary-light-100-alpha-300'] }]}
+                  onPress={() => handleAddToLocalList(list.id)}
+                >
+                  <Icon name="list-music" size={20} color={theme['c-500']} />
+                  <Text style={{ marginLeft: 12, fontSize: 14, color: theme['c-font'] }}>
+                    {list.name}
+                  </Text>
+                </TouchableOpacity>
+              ))}
+            </ScrollView>
           </View>
         </View>
       </Modal>
