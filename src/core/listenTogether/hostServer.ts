@@ -137,7 +137,9 @@ class ListenTogetherHostServer extends Event {
             id: userId,
             name: userName,
             avatar: userAvatar,
+            role: this.roomState?.hostId === userId ? 'host' : 'member',
             joinedAt: Date.now(),
+            isOnline: true,
             _clientId: clientId,
           }
           this.members.set(userId, member)

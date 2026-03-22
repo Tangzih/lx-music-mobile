@@ -248,7 +248,9 @@ const RoomDetail: React.FC<Props> = ({ componentId, roomId }) => {
                  if (isOverwritePlaylist) {
                    uploadPlaylist(listMusics)
                  } else {
-                   addToPlaylist(listMusics as any)
+                   for (const music of listMusics) {
+                     addToPlaylist(music)
+                   }
                  }
                }
              } catch (err) {
@@ -486,11 +488,12 @@ const RoomDetail: React.FC<Props> = ({ componentId, roomId }) => {
         animationType="fade"
         onRequestClose={() => setShowListModal(false)}
       >
-        <TouchableOpacity 
-          style={styles.modalOverlay} 
-          activeOpacity={1} 
-          onPress={() => setShowListModal(false)}
-        >
+        <View style={styles.modalOverlay} pointerEvents="box-none">
+          <TouchableOpacity
+            style={StyleSheet.absoluteFillObject}
+            activeOpacity={1}
+            onPress={() => setShowListModal(false)}
+          />
           <View style={[styles.modalContent, { backgroundColor: theme['c-content-background'] }]}>
             <Text style={[styles.modalTitle, { color: theme['c-font'] }]}>选择要上传的歌单</Text>
             
@@ -517,7 +520,7 @@ const RoomDetail: React.FC<Props> = ({ componentId, roomId }) => {
                />
             </View>
           </View>
-        </TouchableOpacity>
+        </View>
       </Modal>
 
       <PlayerBar />
