@@ -14,7 +14,7 @@ const getStatusbarHeight = (winHeight: number, layoutHeight: number) => {
   return height
 }
 
-export default memo(() => {
+const SizeViewImpl = ({ skipStatusbarUpdate = false }: { skipStatusbarUpdate?: boolean }) => {
   const currentHeightRef = useRef(commonState.statusbarHeight)
   const sizeRef = useRef([0, 0])
   const dimensionsChangedRef = useRef(true)
@@ -27,7 +27,7 @@ export default memo(() => {
       sizeRef.current = [size.height, layout.height]
       const height = getStatusbarHeight(size.height, layout.height)
 
-      if (currentHeightRef.current != height) {
+      if (!skipStatusbarUpdate && currentHeightRef.current != height) {
         currentHeightRef.current = height
         setStatusbarHeight(height)
       }
@@ -52,6 +52,7 @@ export default memo(() => {
     })
 
     const handleSettingUpdate = (keys: Array<keyof LX.AppSetting>) => {
+      if (skipStatusbarUpdate) return
       if (!keys.includes('common.alwaysKeepStatusbarHeight') || !sizeRef.current[1]) return
       const height = getStatusbarHeight(sizeRef.current[0], sizeRef.current[1])
 
@@ -68,5 +69,7 @@ export default memo(() => {
     }
   }, [])
   return (<View style={StyleSheet.absoluteFill} onLayout={handleLayout} />)
-}, () => true)
+}
+
+export default memo(SizeViewImpl, () => true)
 

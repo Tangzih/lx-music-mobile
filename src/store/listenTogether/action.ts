@@ -4,39 +4,12 @@
 
 import { getState, setState, resetState } from './state'
 import type { ListenTogetherState } from './state'
-import { Navigation } from 'react-native-navigation'
-import { LISTEN_TOGETHER_OVERLAY } from '@/navigation/screenNames'
 
-let isOverlayShowing = false
+// The floating overlay button is rendered directly in the Home screen's React tree
+// based on isInRoom state — no RNN overlay needed
+export const showListenTogetherOverlay = (): void => {}
 
-export const showListenTogetherOverlay = (): void => {
-  if (!isOverlayShowing) {
-    isOverlayShowing = true
-    Navigation.showOverlay({
-      component: {
-        id: LISTEN_TOGETHER_OVERLAY,
-        name: LISTEN_TOGETHER_OVERLAY,
-        options: {
-          layout: {
-            componentBackgroundColor: 'transparent',
-          },
-          overlay: {
-            interceptTouchOutside: false,
-          },
-        },
-      },
-    }).catch(() => {
-      isOverlayShowing = false
-    })
-  }
-}
-
-export const hideListenTogetherOverlay = (): void => {
-  if (isOverlayShowing) {
-    isOverlayShowing = false
-    Navigation.dismissOverlay(LISTEN_TOGETHER_OVERLAY).catch(() => {})
-  }
-}
+export const hideListenTogetherOverlay = (): void => {}
 
 /** 设置连接状态 */
 export const setConnectionStatus = (isConnected: boolean): void => {

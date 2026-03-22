@@ -11,11 +11,12 @@ import { useBgPic } from '@/store/common/hook'
 
 interface Props {
   children: React.ReactNode
+  skipStatusbarUpdate?: boolean
 }
 
 const BLUR_RADIUS = Math.max(scaleSizeAbsHR(18), 10)
 
-export default ({ children }: Props) => {
+export default ({ children, skipStatusbarUpdate }: Props) => {
   const theme = useTheme()
   const windowSize = useWindowSize()
   const pic = useBgPic()
@@ -72,7 +73,7 @@ export default ({ children }: Props) => {
 
   return (
     <>
-      <SizeView />
+      <SizeView skipStatusbarUpdate={skipStatusbarUpdate} />
       {pic ? picComponent : themeComponent}
     </>
   )
