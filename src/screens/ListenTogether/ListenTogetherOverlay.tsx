@@ -1,15 +1,13 @@
 import React, { useRef, useState, useCallback, useMemo } from 'react'
 import { View, Animated, PanResponder, TouchableOpacity, StyleSheet, Dimensions } from 'react-native'
-import { Navigation } from 'react-native-navigation'
 import { Icon } from '@/components/common/Icon'
 import { useTheme } from '@/store/theme/hook'
 import { pushListenTogetherEntryScreen } from '@/navigation/navigation'
-import commonState from '@/store/common/state'
 
 const { width: SCREEN_WIDTH, height: SCREEN_HEIGHT } = Dimensions.get('window')
 const BUTTON_SIZE = 50
 
-export default () => {
+export default ({ componentId }: { componentId: string }) => {
   const theme = useTheme()
   const pan = useRef(new Animated.ValueXY({ x: SCREEN_WIDTH - BUTTON_SIZE - 20, y: SCREEN_HEIGHT / 2 })).current
   const [isDragging, setIsDragging] = useState(false)
@@ -63,12 +61,8 @@ export default () => {
   )
 
   const handlePress = useCallback(() => {
-    // 获取当前活动的主屏幕 componentId
-    const componentId = commonState.componentIds.home
-    if (componentId) {
-      pushListenTogetherEntryScreen(componentId)
-    }
-  }, [])
+    pushListenTogetherEntryScreen(componentId)
+  }, [componentId])
 
   return (
     <View style={styles.container} pointerEvents="box-none">

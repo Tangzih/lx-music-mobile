@@ -212,7 +212,7 @@ const Entry: React.FC<Props> = ({ componentId }) => {
   }, [])
 
   return (
-    <PageContent>
+    <PageContent skipStatusbarUpdate>
       {/* Header */}
       <View style={[styles.header, { paddingTop: statusBarHeight }]}>
         <TouchableOpacity
