@@ -107,12 +107,15 @@ const RoomDetail: React.FC<Props> = ({ componentId, roomId }) => {
   const isHost = !!currentRoom && !!ltState.userId && currentRoom.hostId === ltState.userId
 
   useEffect(() => {
-    // 连接就就加入房间（仅一次）
-    if (isConnected && roomId && !hasJoined) {
+    // 本地建房模式下房主已在 Entry 加入房间，无需重复加入；其他情况正常加入
+    if (isConnected && roomId && !hasJoined && !ltState.isInRoom) {
       joinRoom({ roomId })
       setHasJoined(true)
+    } else if (ltState.isInRoom && !hasJoined) {
+      // 已在房间中（本地建房房主），只标记已加入
+      setHasJoined(true)
     }
-  }, [isConnected, roomId, hasJoined, joinRoom])
+  }, [isConnected, roomId, hasJoined, joinRoom, ltState.isInRoom])
 
   // 监听房间解散事件
   useEffect(() => {

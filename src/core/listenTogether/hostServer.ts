@@ -51,7 +51,14 @@ class ListenTogetherHostServer extends Event {
           this.roomState = {
             id: roomId,
             name: hostName + ' 的房间',
-            hostId: '', 
+            hostId: '',
+            hostName: '',
+            maxMembers: 50,
+            currentMembers: 0,
+            isPublic: false,
+            hasPassword: false,
+            allowRequest: false,
+            allowMemberControl: true,
             createdAt: Date.now(),
           }
           this.playbackState = null
@@ -92,6 +99,9 @@ class ListenTogetherHostServer extends Event {
     }
     if (disconnectedMemberId) {
       this.members.delete(disconnectedMemberId)
+      if (this.roomState) {
+        this.roomState.currentMembers = this.members.size
+      }
       this.broadcast('member_left', { memberId: disconnectedMemberId })
       this.broadcastRoomState()
     }
@@ -132,6 +142,7 @@ class ListenTogetherHostServer extends Event {
           const { userId, userName, userAvatar } = data
           if (this.roomState && !this.roomState.hostId) {
             this.roomState.hostId = userId
+            this.roomState.hostName = userName
           }
           const member: any = {
             id: userId,
@@ -143,6 +154,9 @@ class ListenTogetherHostServer extends Event {
             _clientId: clientId,
           }
           this.members.set(userId, member)
+          if (this.roomState) {
+            this.roomState.currentMembers = this.members.size
+          }
           
           const safeMember = { ...member }
           delete safeMember._clientId
