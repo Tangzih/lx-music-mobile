@@ -10,6 +10,7 @@ import {
   ActionSheetIOS,
   Platform,
   Modal,
+  ActivityIndicator,
 } from 'react-native'
 import { Navigation } from 'react-native-navigation'
 import { useListenTogether, useCurrentRoom, useRoomMembers, useRoomMessages, useConnectionStatus, useIsInRoom, useListenTogetherState } from '@/store/listenTogether'
@@ -17,6 +18,7 @@ import { hideListenTogetherOverlay, showListenTogetherOverlay } from '@/store/li
 import { useNavigationComponentDidAppear, useNavigationComponentDidDisappear } from '@/navigation/hooks'
 import { Alert } from 'react-native'
 import { useTheme } from '@/store/theme/hook'
+import { useStatusbarHeight } from '@/store/common/hook'
 import Text from '@/components/common/Text'
 import { Icon } from '@/components/common/Icon'
 import Button from '@/components/common/Button'
@@ -25,11 +27,16 @@ import { getListMusics } from '@/core/list'
 import { useMyList } from '@/store/list/hook'
 import PlayerBar from '@/components/player/PlayerBar'
 import CheckBox from '@/components/common/CheckBox'
+import ListItem, { ITEM_HEIGHT } from '@/screens/Home/Views/Mylist/MusicList/ListItem'
 
 interface Props {
   componentId: string
   roomId: string
 }
+
+// 常量：避免每次渲染时重新创建对象
+const EMPTY_SELECTED: LX.Music.MusicInfo[] = []
+const FULL_ROW_INFO = { rowNum: undefined, rowWidth: '100%' as `${number}%` }
 
 interface MemberItemProps {
   member: LX.ListenTogether.RoomMember
@@ -76,11 +83,13 @@ const MemberItem: React.FC<MemberItemProps> = ({ member, isHost }) => {
 
 const RoomDetail: React.FC<Props> = ({ componentId, roomId }) => {
   const theme = useTheme()
+  const statusbarHeight = useStatusbarHeight()
   const [messageInput, setMessageInput] = useState('')
   const [activeTab, setActiveTab] = useState<'chat' | 'members' | 'playlist'>('chat')
   const [hasJoined, setHasJoined] = useState(false)
   const [showListModal, setShowListModal] = useState(false)
   const [isOverwritePlaylist, setIsOverwritePlaylist] = useState(false)
+  const [isImportingPlaylist, setIsImportingPlaylist] = useState(false)
   const myLists = useMyList()
 
   const {
@@ -245,30 +254,37 @@ const RoomDetail: React.FC<Props> = ({ componentId, roomId }) => {
           text: '确定', 
           onPress: async () => {
              setShowListModal(false)
+             setIsImportingPlaylist(true)
              try {
                const listMusics = await getListMusics(listInfo.id)
                if (listMusics && listMusics.length > 0) {
                  if (isOverwritePlaylist) {
                    uploadPlaylist(listMusics)
                  } else {
-                   for (const music of listMusics) {
-                     addToPlaylist(music)
+                   // 追加模式：合并现有列表，用 uploadPlaylist 一次发送避免 N 条 TCP 消息
+                   const existing = currentRoom?.playbackState?.playlist ?? []
+                   const existingIds = new Set(existing.map(s => s.id))
+                   const newSongs = listMusics.filter(s => !existingIds.has(s.id))
+                   if (newSongs.length > 0) {
+                     uploadPlaylist([...existing, ...newSongs])
                    }
                  }
                }
              } catch (err) {
                console.error('Failed to upload/append playlist:', err)
+             } finally {
+               setIsImportingPlaylist(false)
              }
           }
         }
       ]
     )
-  }, [canControlPlayback, isOverwritePlaylist, uploadPlaylist, addToPlaylist])
+  }, [canControlPlayback, isOverwritePlaylist, uploadPlaylist, currentRoom?.playbackState?.playlist])
 
   return (
     <PageContent style={styles.container}>
       {/* 顶部导航 */}
-      <View style={[styles.navBar, { borderBottomColor: theme['c-primary-light-100-alpha-300'] }]} >
+      <View style={[styles.navBar, { borderBottomColor: theme['c-primary-light-100-alpha-300'], paddingTop: statusbarHeight + 12 }]} >
         <TouchableOpacity onPress={handleBack} style={styles.backBtn}>
           <Icon name='arrow-left' size={24} color={theme['c-font']} />
         </TouchableOpacity>
@@ -434,7 +450,12 @@ const RoomDetail: React.FC<Props> = ({ componentId, roomId }) => {
             )}
 
             {/* 播放列表 */}
-            {currentRoom?.playbackState?.playlist && currentRoom.playbackState.playlist.length > 0 ? (
+            {isImportingPlaylist ? (
+              <View style={styles.emptyPlaylist}>
+                <ActivityIndicator size="large" color={theme['c-primary-font']} />
+                <Text style={[styles.emptyText, { color: theme['c-500'] }]}>正在加载歌单...</Text>
+              </View>
+            ) : currentRoom?.playbackState?.playlist && currentRoom.playbackState.playlist.length > 0 ? (
               <View style={styles.playlistSection}>
                 <Text style={[styles.sectionTitle, { color: theme['c-500'] }]}>
                   播放列表 ({currentRoom.playbackState.playlist.length})
@@ -443,33 +464,22 @@ const RoomDetail: React.FC<Props> = ({ componentId, roomId }) => {
                   data={currentRoom.playbackState.playlist}
                   keyExtractor={(item, index) => `${item.id}-${index}`}
                   renderItem={({ item, index }) => (
-                    <TouchableOpacity
-                      style={[
-                        styles.listItem,
-                        index === currentRoom.playbackState?.currentIndex && {
-                          backgroundColor: theme['c-primary-background-hover'],
-                        },
-                      ]}
-                      onPress={() => canControlPlayback && changeSong(index)}
-                      disabled={!canControlPlayback}
-                    >
-                      {index === currentRoom.playbackState?.currentIndex ?
-                        <Icon style={styles.listSn} name="play-outline" size={13} color={theme['c-primary-font']} /> :
-                        <Text style={styles.listSn} size={13} color={theme['c-300']}>{index + 1}</Text>
-                      }
-                      <View style={styles.listItemInfo}>
-                        <Text style={{ color: index === currentRoom.playbackState?.currentIndex ? theme['c-primary-font'] : theme['c-font'] }}>
-                          {item.name}
-                        </Text>
-                        <View style={styles.listItemSingle}>
-                          <Text style={{ fontSize: 11, color: index === currentRoom.playbackState?.currentIndex ? theme['c-primary-alpha-200'] : theme['c-500'] }}>
-                            {item.singer}
-                          </Text>
-                        </View>
-                      </View>
-                    </TouchableOpacity>
+                    <ListItem
+                      item={item}
+                      index={index}
+                      activeIndex={currentRoom.playbackState?.currentIndex ?? -1}
+                      onPress={() => { if (canControlPlayback) changeSong(index) }}
+                      onLongPress={() => {}}
+                      onShowMenu={() => {}}
+                      selectedList={EMPTY_SELECTED}
+                      rowInfo={FULL_ROW_INFO}
+                      isShowAlbumName={false}
+                      isShowInterval={true}
+                    />
                   )}
+                  getItemLayout={(_data, index) => ({ length: ITEM_HEIGHT, offset: ITEM_HEIGHT * index, index })}
                   showsVerticalScrollIndicator={false}
+                  style={styles.playlistFlatList}
                 />
               </View>
             ) : (
@@ -570,7 +580,7 @@ const styles = StyleSheet.create({
     flexDirection: 'row',
     alignItems: 'center',
     paddingHorizontal: 16,
-    paddingVertical: 12,
+    paddingBottom: 12,
     borderBottomWidth: 1,
   },
   backBtn: {
@@ -756,6 +766,9 @@ const styles = StyleSheet.create({
     marginBottom: 12,
   },
   playlistSection: {
+    flex: 1,
+  },
+  playlistFlatList: {
     flex: 1,
   },
   sectionTitle: {
