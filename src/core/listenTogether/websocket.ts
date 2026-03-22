@@ -151,7 +151,12 @@ export class ListenTogetherWebSocket extends Event {
    * 发送消息
    */
   send<T = unknown>(type: string, data: T): boolean {
-    if (this.ws?.readyState !== WebSocket.OPEN) {
+    if (this.isTcp) {
+      // TCP sockets don't have readyState; check if the socket exists and is not destroyed
+      if (!(this.ws as any) || (this.ws as any).destroyed) {
+        return false
+      }
+    } else if (this.ws?.readyState !== WebSocket.OPEN) {
       return false
     }
 

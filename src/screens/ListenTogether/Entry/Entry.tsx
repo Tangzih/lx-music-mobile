@@ -159,7 +159,7 @@ const Entry: React.FC<Props> = ({ componentId }) => {
 
       // Connect to self
       const userId = `host_${Date.now()}`
-      await initService(`tcp://127.0.0.1:${portNum}`, userId)
+      await initService(`tcp://127.0.0.1:${portNum}`, userId, localName.trim())
       
       const service = getService()
       // Get the real room ID from the host server
