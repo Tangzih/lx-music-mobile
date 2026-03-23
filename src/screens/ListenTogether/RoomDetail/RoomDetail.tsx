@@ -7,7 +7,6 @@ import {
   FlatList,
   TextInput,
   Image,
-  Platform,
   Modal,
   ActivityIndicator,
   Alert,
@@ -23,9 +22,9 @@ import { getListMusics } from '@/core/list'
 import { useMyList } from '@/store/list/hook'
 import PlayerBar from '@/components/player/PlayerBar'
 import CheckBox from '@/components/common/CheckBox'
-import ListItem, { ITEM_HEIGHT } from '@/screens/Home/Views/Mylist/MusicList/ListItem'
 import { setComponentId } from '@/core/common'
 import { COMPONENT_IDS } from '@/config/constant'
+import PlaylistView from './PlaylistView'
 
 interface Props {
   componentId: string
@@ -33,8 +32,6 @@ interface Props {
 }
 
 // 常量：避免每次渲染时重新创建对象
-const EMPTY_SELECTED: LX.Music.MusicInfo[] = []
-const FULL_ROW_INFO = { rowNum: undefined, rowWidth: '100%' as `${number}%` }
 
 interface MemberItemProps {
   member: LX.ListenTogether.RoomMember
@@ -88,9 +85,6 @@ const RoomDetail: React.FC<Props> = ({ componentId, roomId }) => {
   const [showListModal, setShowListModal] = useState(false)
   const [isOverwritePlaylist, setIsOverwritePlaylist] = useState(false)
   const [isImportingPlaylist, setIsImportingPlaylist] = useState(false)
-  // Context menu state
-  const [selectedSong, setSelectedSong] = useState<{ item: LX.Music.MusicInfo; index: number } | null>(null)
-  const [showAddToLocalModal, setShowAddToLocalModal] = useState(false)
   const myLists = useMyList()
 
   const {
@@ -98,7 +92,6 @@ const RoomDetail: React.FC<Props> = ({ componentId, roomId }) => {
     dissolveRoom,
     joinRoom,
     sendMessage,
-    changeSong,
     uploadPlaylist,
   } = useListenTogether()
   const ltState = useListenTogetherState()
@@ -188,19 +181,6 @@ const RoomDetail: React.FC<Props> = ({ componentId, roomId }) => {
     }
   }, [messageInput, sendMessage])
 
-  const handleReaction = useCallback((_emoji: string) => {
-    // sendReaction(_emoji)
-  }, [])
-
-  const handleSyncPlayback = useCallback(() => {
-    if (!currentRoom?.playbackState) return
-    // 同步播放状态
-    const { currentSong, isPlaying, currentTime } = currentRoom.playbackState
-    if (currentSong) {
-      console.log('syncPlayback', { currentSong, isPlaying, currentTime })
-    }
-  }, [currentRoom])
-
   const renderMessage = useCallback(({ item }: { item: LX.ListenTogether.ChatMessage }) => (
     <View style={[styles.messageItem, { backgroundColor: theme['c-primary-light-100-alpha-300'] }]} >
       <View style={styles.messageHeader}>
@@ -220,66 +200,6 @@ const RoomDetail: React.FC<Props> = ({ componentId, roomId }) => {
   // 判断当前用户是否可以控制播放
   // 房主始终可以控制，如果 allowMemberControl 为 true 则成员也可以控制
   const canControlPlayback = currentRoom?.allowMemberControl === true || currentRoom?.hostId != null
-
-  // 播放列表歌曲按下
-  const handlePlaylistItemPress = useCallback((item: LX.Music.MusicInfo, index: number) => {
-    if (canControlPlayback) changeSong(index)
-  }, [canControlPlayback, changeSong])
-
-  // 长按或点菜单按钮打开上下文菜单
-  const handlePlaylistItemMenu = useCallback((item: LX.Music.MusicInfo, index: number) => {
-    setSelectedSong({ item, index })
-    const options = ['播放', '从列表删除', '添加到本地歌单', '取消']
-    const destructiveIndex = 1
-
-    if (Platform.OS === 'ios') {
-      const { ActionSheetIOS: ASIOS } = require('react-native')
-      ASIOS.showActionSheetWithOptions(
-        { options, cancelButtonIndex: options.length - 1, destructiveButtonIndex: destructiveIndex },
-        (buttonIndex: number) => {
-          if (buttonIndex === 0) {
-            if (canControlPlayback) changeSong(index)
-          } else if (buttonIndex === 1) {
-            if (canControlPlayback) {
-              const playlist = currentRoom?.playbackState?.playlist ?? []
-              uploadPlaylist(playlist.filter((_, i) => i !== index))
-            }
-          } else if (buttonIndex === 2) {
-            setShowAddToLocalModal(true)
-          }
-        }
-      )
-    } else {
-      // Android: use Alert
-      Alert.alert(item.name, item.singer, [
-        {
-          text: '播放',
-          onPress: () => { if (canControlPlayback) changeSong(index) },
-        },
-        {
-          text: '从列表删除',
-          style: 'destructive',
-          onPress: () => {
-            if (!canControlPlayback) return
-            const playlist = currentRoom?.playbackState?.playlist ?? []
-            uploadPlaylist(playlist.filter((_, i) => i !== index))
-          },
-        },
-        {
-          text: '添加到本地歌单',
-          onPress: () => setShowAddToLocalModal(true),
-        },
-        { text: '取消', style: 'cancel' },
-      ])
-    }
-  }, [canControlPlayback, changeSong, currentRoom, uploadPlaylist])
-
-  // 将选中歌曲添加到指定本地歌单
-  const handleAddToLocalList = useCallback((listId: string) => {
-    if (!selectedSong) return
-    setShowAddToLocalModal(false)
-    void global.list_event.list_music_add(listId, [selectedSong.item], 'top')
-  }, [selectedSong])
 
   // 打开上传歌单弹窗
   const handleOpenPlaylistModal = useCallback(() => {
@@ -457,86 +377,17 @@ const RoomDetail: React.FC<Props> = ({ componentId, roomId }) => {
               </TouchableOpacity>
             </View>
 
-            {/* 当前播放 */}
-            {currentRoom?.playbackState?.currentSong && (
-              <View style={[styles.currentSongSection, { borderBottomColor: theme['c-primary-light-100-alpha-300'] }]}>
-                <Text style={[styles.sectionTitle, { color: theme['c-500'] }]}>正在播放</Text>
-                <View style={[styles.listItem, { backgroundColor: theme['c-primary-background-hover'], borderRadius: 8 }]}>
-                    <Icon style={styles.listSn} name="play-outline" size={13} color={theme['c-primary-font']} />
-                    <View style={styles.listItemInfo}>
-                      <Text style={{ color: theme['c-primary-font'], fontWeight: '600' }}>{currentRoom.playbackState.currentSong.name}</Text>
-                      <View style={styles.listItemSingle}>
-                        <Text style={{ fontSize: 11, color: theme['c-primary-alpha-200'] }}>{currentRoom.playbackState.currentSong.singer}</Text>
-                      </View>
-                    </View>
-                </View>
-              </View>
-            )}
-
-            {/* 待播放队列 */}
-            {currentRoom?.playbackState?.queue && currentRoom.playbackState.queue.length > 0 && (
-              <View style={styles.queueSection}>
-                <Text style={[styles.sectionTitle, { color: theme['c-500'] }]}>
-                  待播放 ({currentRoom.playbackState.queue.length})
-                </Text>
-                {currentRoom.playbackState.queue.map((item, index) => (
-                  <View key={`queue-${index}`} style={[styles.listItem, { backgroundColor: theme['c-primary-light-100-alpha-300'], borderRadius: 6, marginBottom: 6 }]}>
-                    <Text style={[styles.listSn, { color: theme['c-300'] }]} size={13}>{index + 1}</Text>
-                    <View style={styles.listItemInfo}>
-                      <Text style={{ color: theme['c-font'] }}>
-                        {item.name}
-                      </Text>
-                      <View style={styles.listItemSingle}>
-                        <Text style={{ fontSize: 11, color: theme['c-500'] }}>
-                          {item.singer}
-                        </Text>
-                      </View>
-                    </View>
-                  </View>
-                ))}
-              </View>
-            )}
-
-            {/* 播放列表 */}
             {isImportingPlaylist ? (
               <View style={styles.emptyPlaylist}>
                 <ActivityIndicator size="large" color={theme['c-primary-font']} />
                 <Text style={[styles.emptyText, { color: theme['c-500'] }]}>正在加载歌单...</Text>
               </View>
-            ) : currentRoom?.playbackState?.playlist && currentRoom.playbackState.playlist.length > 0 ? (
-              <View style={styles.playlistSection}>
-                <Text style={[styles.sectionTitle, { color: theme['c-500'] }]}>
-                  播放列表 ({currentRoom.playbackState.playlist.length})
-                </Text>
-                <FlatList
-                  data={currentRoom.playbackState.playlist}
-                  keyExtractor={(item, index) => `${item.id}-${index}`}
-                  renderItem={({ item, index }) => (
-                    <ListItem
-                      item={item}
-                      index={index}
-                      activeIndex={currentRoom.playbackState?.currentIndex ?? -1}
-                      onPress={handlePlaylistItemPress}
-                      onLongPress={handlePlaylistItemMenu}
-                      onShowMenu={(songItem, songIndex) => handlePlaylistItemMenu(songItem, songIndex)}
-                      selectedList={EMPTY_SELECTED}
-                      rowInfo={FULL_ROW_INFO}
-                      isShowAlbumName={false}
-                      isShowInterval={true}
-                    />
-                  )}
-                  getItemLayout={(_data, index) => ({ length: ITEM_HEIGHT, offset: ITEM_HEIGHT * index, index })}
-                  showsVerticalScrollIndicator={false}
-                  style={styles.playlistFlatList}
-                />
-              </View>
             ) : (
-              <View style={styles.emptyPlaylist}>
-                <Icon name='list-order' size={48} color={theme['c-500']} />
-                <Text style={[styles.emptyText, { color: theme['c-500'] }]} >
-                  播放列表为空
-                </Text>
-              </View>
+              <PlaylistView
+                playlist={currentRoom?.playbackState?.playlist ?? []}
+                currentIndex={currentRoom?.playbackState?.currentIndex ?? -1}
+                canControl={canControlPlayback}
+              />
             )}
           </View>
         )}
@@ -580,39 +431,6 @@ const RoomDetail: React.FC<Props> = ({ componentId, roomId }) => {
                  label="覆盖所有歌曲"
                />
             </View>
-          </View>
-        </View>
-      </Modal>
-
-      {/* 添加到本地歌单弹窗 */}
-      <Modal
-        visible={showAddToLocalModal}
-        transparent
-        animationType="fade"
-        onRequestClose={() => setShowAddToLocalModal(false)}
-      >
-        <View style={styles.modalOverlay} pointerEvents="box-none">
-          <TouchableOpacity
-            style={StyleSheet.absoluteFillObject}
-            activeOpacity={1}
-            onPress={() => setShowAddToLocalModal(false)}
-          />
-          <View style={[styles.modalContent, { backgroundColor: theme['c-content-background'] }]}>
-            <Text style={[styles.modalTitle, { color: theme['c-font'] }]}>选择本地歌单</Text>
-            <ScrollView style={styles.modalList} showsVerticalScrollIndicator={false}>
-              {myLists.map(list => (
-                <TouchableOpacity
-                  key={list.id}
-                  style={[styles.modalListItem, { borderBottomColor: theme['c-primary-light-100-alpha-300'] }]}
-                  onPress={() => handleAddToLocalList(list.id)}
-                >
-                  <Icon name="list-music" size={20} color={theme['c-500']} />
-                  <Text style={{ marginLeft: 12, fontSize: 14, color: theme['c-font'] }}>
-                    {list.name}
-                  </Text>
-                </TouchableOpacity>
-              ))}
-            </ScrollView>
           </View>
         </View>
       </Modal>
@@ -838,47 +656,6 @@ const styles = StyleSheet.create({
     fontSize: 12,
     fontWeight: '500',
   },
-  currentSongSection: {
-    paddingBottom: 12,
-    borderBottomWidth: 1,
-    marginBottom: 12,
-  },
-  queueSection: {
-    marginBottom: 12,
-  },
-  playlistSection: {
-    flex: 1,
-  },
-  playlistFlatList: {
-    flex: 1,
-  },
-  sectionTitle: {
-    fontSize: 12,
-    fontWeight: '600',
-    marginBottom: 8,
-    textTransform: 'uppercase',
-  },
-  listItem: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    paddingRight: 2,
-    height: 54,
-  },
-  listSn: {
-    width: 38,
-    textAlign: 'center',
-    paddingLeft: 3,
-    paddingRight: 3,
-  },
-  listItemInfo: {
-    flexGrow: 1,
-    flexShrink: 1,
-    paddingRight: 2,
-  },
-  listItemSingle: {
-    paddingTop: 3,
-    flexDirection: 'row',
-  },
   emptyPlaylist: {
     flex: 1,
     alignItems: 'center',
@@ -888,6 +665,7 @@ const styles = StyleSheet.create({
     fontSize: 14,
     marginTop: 12,
   },
+
 })
 
 export default RoomDetail
