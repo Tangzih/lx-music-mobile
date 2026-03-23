@@ -636,12 +636,13 @@ const styles = StyleSheet.create({
   },
   playlistContainer: {
     flex: 1,
-    padding: 12,
   },
   playlistActions: {
     flexDirection: 'row',
-    marginBottom: 12,
+    marginBottom: 4,
     gap: 8,
+    paddingHorizontal: 12,
+    paddingTop: 8,
   },
   actionBtn: {
     flexDirection: 'row',

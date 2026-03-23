@@ -217,7 +217,15 @@ class ListenTogetherHostServer extends Event {
           break
         }
         case 'change_song': {
-          this.broadcast('change_song', data)
+          if (this.playbackState && Array.isArray(this.playbackState.playlist)) {
+            const idx = data.index as number
+            this.playbackState.currentIndex = idx
+            this.playbackState.currentSong = this.playbackState.playlist[idx] ?? null
+            this.playbackState.currentTime = 0
+            this.playbackState.status = 'playing'
+            this.playbackState.timestamp = Date.now()
+          }
+          this.broadcast('playback_state', { state: this.playbackState, triggeredBy: data.triggeredBy })
           break
         }
         case 'upload_playlist': {
