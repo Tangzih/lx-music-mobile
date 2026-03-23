@@ -79,10 +79,21 @@ export const initService = async (serverUrl: string, userId: string, userName?: 
   serviceInstance.on('playbackStateUpdated', (state) => {
     const { currentRoom } = getState()
     if (currentRoom) {
+      const prevSongId = currentRoom.playbackState?.currentSong?.id
       setCurrentRoom({
         ...currentRoom,
         playbackState: state,
       })
+      // Trigger actual playback when the current song changes (room-initiated song switch)
+      if (state.currentSong && state.currentSong.id !== prevSongId) {
+        void Promise.all([
+          import('@/core/player/playInfo'),
+          import('@/core/player/player'),
+        ]).then(([{ setPlayMusicInfo }, { setMusicUrl }]) => {
+          setPlayMusicInfo(null, state.currentSong!, true)
+          setMusicUrl(state.currentSong!)
+        })
+      }
     }
   })
 
