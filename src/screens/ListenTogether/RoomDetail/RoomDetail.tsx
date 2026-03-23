@@ -17,14 +17,16 @@ import { useTheme } from '@/store/theme/hook'
 import { useStatusbarHeight } from '@/store/common/hook'
 import Text from '@/components/common/Text'
 import { Icon } from '@/components/common/Icon'
+import StatusBar from '@/components/common/StatusBar'
 import PageContent from '@/components/PageContent'
 import { getListMusics } from '@/core/list'
 import { useMyList } from '@/store/list/hook'
 import PlayerBar from '@/components/player/PlayerBar'
 import CheckBox from '@/components/common/CheckBox'
 import { setComponentId } from '@/core/common'
-import { COMPONENT_IDS } from '@/config/constant'
+import { COMPONENT_IDS, HEADER_HEIGHT } from '@/config/constant'
 import PlaylistView from './PlaylistView'
+import { scaleSizeH } from '@/utils/pixelRatio'
 
 interface Props {
   componentId: string
@@ -199,7 +201,7 @@ const RoomDetail: React.FC<Props> = ({ componentId, roomId }) => {
 
   // 判断当前用户是否可以控制播放
   // 房主始终可以控制，如果 allowMemberControl 为 true 则成员也可以控制
-  const canControlPlayback = currentRoom?.allowMemberControl === true || currentRoom?.hostId != null
+  const canControlPlayback = !!currentRoom && (currentRoom.allowMemberControl === true || currentRoom.hostId === ltState.userId)
 
   // 打开上传歌单弹窗
   const handleOpenPlaylistModal = useCallback(() => {
@@ -250,9 +252,19 @@ const RoomDetail: React.FC<Props> = ({ componentId, roomId }) => {
   }, [canControlPlayback, isOverwritePlaylist, uploadPlaylist, currentRoom?.playbackState?.playlist])
 
   return (
-    <PageContent skipStatusbarUpdate>
+    <PageContent>
+      <StatusBar />
       {/* 顶部导航 */}
-      <View style={[styles.navBar, { borderBottomColor: theme['c-primary-light-100-alpha-300'], paddingTop: statusbarHeight + 12 }]} >
+      <View
+        style={[
+          styles.navBar,
+          {
+            borderBottomColor: theme['c-primary-light-100-alpha-300'],
+            height: scaleSizeH(HEADER_HEIGHT) + statusbarHeight,
+            paddingTop: statusbarHeight,
+          },
+        ]}
+      >
         <TouchableOpacity onPress={handleBack} style={styles.backBtn}>
           <Icon name='arrow-left' size={24} color={theme['c-font']} />
         </TouchableOpacity>
@@ -479,7 +491,6 @@ const styles = StyleSheet.create({
     flexDirection: 'row',
     alignItems: 'center',
     paddingHorizontal: 16,
-    paddingBottom: 12,
     borderBottomWidth: 1,
   },
   backBtn: {
