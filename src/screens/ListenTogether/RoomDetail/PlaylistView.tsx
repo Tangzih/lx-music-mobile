@@ -10,11 +10,10 @@ import Menu, { type MenuType, type Menus, type Position } from '@/components/com
 import MusicAddModal, { type MusicAddModalType } from '@/components/MusicAddModal'
 import { useListenTogether, useCurrentRoom } from '@/store/listenTogether'
 import { addTempPlayList } from '@/core/player/tempPlayList'
+import { LISTEN_TOGETHER_ROOM_PLAYLIST_ID } from '@/core/listenTogether/constants'
 
 const EMPTY_SELECTED: LX.Music.MusicInfo[] = []
 const rowInfo = getRowInfo()
-
-const ROOM_LIST_ID = '__listen_together_room__'
 
 const menuList: Menus = [
   { action: 'play', label: '播放' },
@@ -81,7 +80,7 @@ export default ({ playlist, currentIndex, canControl }: Props) => {
         if (canControl) changeSong(index)
         break
       case 'playLater':
-        addTempPlayList([{ listId: ROOM_LIST_ID, musicInfo: item }])
+        addTempPlayList([{ listId: LISTEN_TOGETHER_ROOM_PLAYLIST_ID, musicInfo: item }])
         break
       case 'add':
         musicAddModalRef.current?.show({ musicInfo: item, listId: '', isMove: false })

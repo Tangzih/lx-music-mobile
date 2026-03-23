@@ -22,7 +22,7 @@ import PageContent from '@/components/PageContent'
 import { ROOM_LIST_SCREEN } from '../RoomList/screenNames'
 import { ROOM_DETAIL_SCREEN } from '../RoomDetail/screenNames'
 import { LISTEN_TOGETHER_ENTRY_SCREEN } from './screenNames'
-import { setConnectMode } from '@/store/listenTogether/action'
+import { setConnectMode as setGlobalConnectMode } from '@/store/listenTogether/action'
 import { canDrawOverlays, requestOverlayPermission } from '@/utils/nativeModules/utils'
 import PlayerBar from '@/components/player/PlayerBar'
 
@@ -47,7 +47,7 @@ const Entry: React.FC<Props> = ({ componentId }) => {
   const [serverHistory, setServerHistory] = useState<string[]>([])
   
   // Use global connectMode when returning to this screen
-  const { connectMode: globalConnectMode, isInRoom } = useListenTogether()
+  const { connectMode: globalConnectMode, isInRoom, currentRoom } = useListenTogether()
 
   const [localName, setLocalName] = useState('')
   const [localPort, setLocalPort] = useState('2333')
@@ -110,7 +110,7 @@ const Entry: React.FC<Props> = ({ componentId }) => {
       const newHistory = [address, ...serverHistory.filter(s => s !== address)].slice(0, 5)
       setServerHistory(newHistory)
       
-      setConnectMode(connectMode)
+      setGlobalConnectMode(connectMode)
 
       if (address.startsWith('tcp://') || connectMode === 'local') {
         // TCP Direct Room: join directly and skip room list
@@ -119,7 +119,10 @@ const Entry: React.FC<Props> = ({ componentId }) => {
           service.joinRoom({ roomId: 'local_room' })
         }
         Navigation.push(componentId, {
-          component: { name: ROOM_DETAIL_SCREEN },
+          component: {
+            name: ROOM_DETAIL_SCREEN,
+            passProps: { roomId: 'local_room' },
+          },
         })
       } else {
         // Standard server WebSocket: wait for handshake then show room list
@@ -184,7 +187,7 @@ const Entry: React.FC<Props> = ({ componentId }) => {
         setInRoom(true)
       }
 
-      setConnectMode('local')
+      setGlobalConnectMode('local')
 
       Navigation.push(componentId, {
         component: {
@@ -308,7 +311,9 @@ const Entry: React.FC<Props> = ({ componentId }) => {
                   onPress={() => Navigation.push(componentId, {
                     component: {
                       name: isInRoom ? ROOM_DETAIL_SCREEN : ROOM_LIST_SCREEN,
-                      passProps: isInRoom ? undefined : {},
+                      passProps: isInRoom
+                        ? { roomId: currentRoom?.id ?? 'local_room' }
+                        : {},
                       options: {
                         topBar: {
                           visible: false,
@@ -404,6 +409,7 @@ const Entry: React.FC<Props> = ({ componentId }) => {
                   onPress={() => Navigation.push(componentId, {
                     component: {
                       name: ROOM_DETAIL_SCREEN,
+                      passProps: { roomId: currentRoom?.id ?? 'local_room' },
                       options: {
                         topBar: {
                           visible: false,

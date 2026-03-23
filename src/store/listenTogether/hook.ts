@@ -22,6 +22,8 @@ import {
   setConnectMode,
 } from './action'
 import { ListenTogetherService } from '@/core/listenTogether'
+import { setMusicList } from '@/utils/listManage'
+import { LISTEN_TOGETHER_ROOM_PLAYLIST_ID } from '@/core/listenTogether/constants'
 
 let serviceInstance: ListenTogetherService | null = null
 let serviceConfig: { serverUrl: string; userId: string } | null = null
@@ -57,6 +59,9 @@ export const initService = async (serverUrl: string, userId: string, userName?: 
   })
 
   serviceInstance.on('roomStateUpdated', (data) => {
+    if (Array.isArray(data.room?.playbackState?.playlist)) {
+      setMusicList(LISTEN_TOGETHER_ROOM_PLAYLIST_ID, data.room.playbackState.playlist)
+    }
     setCurrentRoom(data.room)
     setMembers(data.members)
     setInRoom(true)
@@ -68,6 +73,7 @@ export const initService = async (serverUrl: string, userId: string, userName?: 
 
   serviceInstance.on('roomDissolved', (data) => {
     // 房间被解散：清空所有房间相关状态
+    setMusicList(LISTEN_TOGETHER_ROOM_PLAYLIST_ID, [])
     setInRoom(false)
     setCurrentRoom(null)
     setMembers([])
@@ -78,6 +84,9 @@ export const initService = async (serverUrl: string, userId: string, userName?: 
 
   serviceInstance.on('playbackStateUpdated', (state) => {
     const { currentRoom } = getState()
+    if (Array.isArray(state.playlist)) {
+      setMusicList(LISTEN_TOGETHER_ROOM_PLAYLIST_ID, state.playlist)
+    }
     if (currentRoom) {
       const prevSongId = currentRoom.playbackState?.currentSong?.id
       setCurrentRoom({
@@ -90,7 +99,7 @@ export const initService = async (serverUrl: string, userId: string, userName?: 
           import('@/core/player/playInfo'),
           import('@/core/player/player'),
         ]).then(([{ setPlayMusicInfo }, { setMusicUrl }]) => {
-          setPlayMusicInfo(null, state.currentSong!, true)
+          setPlayMusicInfo(LISTEN_TOGETHER_ROOM_PLAYLIST_ID, state.currentSong!, false)
           setMusicUrl(state.currentSong!)
         })
       }
@@ -120,6 +129,15 @@ export const initService = async (serverUrl: string, userId: string, userName?: 
 
   serviceInstance.on('memberLeft', (memberId) => {
     removeMember(memberId)
+    const { currentRoom } = getState()
+    if (currentRoom?.hostId === memberId) {
+      setMusicList(LISTEN_TOGETHER_ROOM_PLAYLIST_ID, [])
+      setInRoom(false)
+      setCurrentRoom(null)
+      setMembers([])
+      clearMessages()
+      setError('房间已解散')
+    }
   })
 
   serviceInstance.on('reactionReceived', (data) => {
@@ -157,6 +175,7 @@ export const disconnectService = () => {
     serviceInstance = null
   }
   setConnectionStatus(false)
+  setMusicList(LISTEN_TOGETHER_ROOM_PLAYLIST_ID, [])
   setInRoom(false)
   setCurrentRoom(null)
   setMembers([])
@@ -289,6 +308,7 @@ export const useListenTogether = () => {
       return
     }
     serviceInstance.leaveRoom()
+    setMusicList(LISTEN_TOGETHER_ROOM_PLAYLIST_ID, [])
     setInRoom(false)
     setCurrentRoom(null)
     setMembers([])
