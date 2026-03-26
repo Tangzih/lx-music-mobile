@@ -10,24 +10,21 @@ import {
   Modal,
   ActivityIndicator,
   Alert,
-  StatusBar as RNStatusBar,
 } from 'react-native'
 import { Navigation } from 'react-native-navigation'
 import { useListenTogether, useCurrentRoom, useRoomMembers, useRoomMessages, useConnectionStatus, useListenTogetherState } from '@/store/listenTogether'
 import { useTheme } from '@/store/theme/hook'
-import { useStatusbarHeight } from '@/store/common/hook'
 import Text from '@/components/common/Text'
 import { Icon } from '@/components/common/Icon'
-import StatusBar from '@/components/common/StatusBar'
 import PageContent from '@/components/PageContent'
 import { getListMusics } from '@/core/list'
 import { useMyList } from '@/store/list/hook'
 import PlayerBar from '@/components/player/PlayerBar'
 import CheckBox from '@/components/common/CheckBox'
 import { setComponentId } from '@/core/common'
-import { COMPONENT_IDS, HEADER_HEIGHT } from '@/config/constant'
+import { COMPONENT_IDS } from '@/config/constant'
 import PlaylistView from './PlaylistView'
-import { scaleSizeH } from '@/utils/pixelRatio'
+import ListenTogetherHeader from '../components/Header'
 
 interface Props {
   componentId: string
@@ -81,11 +78,6 @@ const MemberItem: React.FC<MemberItemProps> = ({ member, isHost }) => {
 
 const RoomDetail: React.FC<Props> = ({ componentId, roomId }) => {
   const theme = useTheme()
-  const statusbarHeight = useStatusbarHeight()
-  const nativeStatusbarHeight = RNStatusBar.currentHeight ?? 0
-  const resolvedStatusbarHeight = statusbarHeight > 0 && nativeStatusbarHeight > 0
-    ? Math.min(statusbarHeight, nativeStatusbarHeight)
-    : Math.max(statusbarHeight, nativeStatusbarHeight)
   const [messageInput, setMessageInput] = useState('')
   const [activeTab, setActiveTab] = useState<'chat' | 'members' | 'playlist'>('chat')
   const [hasJoined, setHasJoined] = useState(false)
@@ -258,33 +250,21 @@ const RoomDetail: React.FC<Props> = ({ componentId, roomId }) => {
 
   return (
     <PageContent skipStatusbarUpdate>
-      <StatusBar />
-      {/* 顶部导航 */}
-      <View
-        style={[
-          styles.navBar,
-          {
-            borderBottomColor: theme['c-primary-light-100-alpha-300'],
-            minHeight: scaleSizeH(HEADER_HEIGHT) + resolvedStatusbarHeight,
-            paddingTop: resolvedStatusbarHeight,
-          },
-        ]}
-      >
-        <TouchableOpacity onPress={handleBack} style={styles.backBtn}>
-          <Icon name='arrow-left' size={24} color={theme['c-font']} />
-        </TouchableOpacity>
-        <Text style={[styles.navTitle, { color: theme['c-font'] }]} >
-          {currentRoom?.name ?? '房间'}
-        </Text>
-        <TouchableOpacity onPress={handleLeaveOrDissolve} style={styles.syncBtn}>
-          <Icon name='exit2' size={20} color={isHost ? theme['c-error'] ?? '#f44' : theme['c-font']} />
-        </TouchableOpacity>
-      </View>
+      <ListenTogetherHeader
+        title={currentRoom?.name ?? '房间'}
+        onBack={handleBack}
+        borderBottom
+        right={(
+          <TouchableOpacity onPress={handleLeaveOrDissolve} style={styles.syncBtn}>
+            <Icon name='exit2' size={20} color={isHost ? theme['c-error'] ?? '#f44' : theme['c-font']} />
+          </TouchableOpacity>
+        )}
+      />
 
       {/* 房间信息 */}
       {currentRoom && (
-        <View style={styles.roomInfo} >
-          <View style={[styles.roomInfoContainer, { backgroundColor: theme['c-primary-light-100-alpha-300'] }]}>
+        <View style={styles.pageBody}>
+          <View style={[styles.roomInfoContainer, { backgroundColor: theme['c-content-background'] }]}>
             <View style={styles.roomInfoRow}>
               <Text style={[styles.roomInfoText, { color: theme['c-font'] }]} >
                 人数: {currentRoom.currentMembers}/{currentRoom.maxMembers}
@@ -299,42 +279,44 @@ const RoomDetail: React.FC<Props> = ({ componentId, roomId }) => {
         </View>
       )}
 
-      {/* 标签栏 */}
-      <View style={[styles.tabBar, { borderBottomColor: theme['c-primary-light-100-alpha-300'] }]} >
-        {[
-          { key: 'chat' as const, label: '聊天', icon: 'comment' },
-          { key: 'members' as const, label: '成员' },
-          { key: 'playlist' as const, label: '播放列表', icon: 'list-order' },
-        ].map((tab) => (
-          <TouchableOpacity
-            key={tab.key}
-            style={[
-              styles.tabItem,
-              activeTab === tab.key && { borderBottomColor: theme['c-primary-font'] },
-            ]}
-            onPress={() => setActiveTab(tab.key)}
-          >
-            {tab.icon && (
-              <Icon
-                name={tab.icon}
-                size={18}
-                color={activeTab === tab.key ? theme['c-primary-font'] : theme['c-500']}
-              />
-            )}
-            <Text
-              style={[
-                styles.tabText,
-                { color: activeTab === tab.key ? theme['c-primary-font'] : theme['c-500'] },
-              ]}
-            >
-              {tab.label}
-            </Text>
-          </TouchableOpacity>
-        ))}
-      </View>
+      <View style={styles.contentWrap}>
+        <View style={[styles.contentCard, { backgroundColor: theme['c-content-background'] }]}>
+          {/* 标签栏 */}
+          <View style={[styles.tabBar, { borderBottomColor: theme['c-primary-light-100-alpha-300'] }]} >
+            {[
+              { key: 'chat' as const, label: '聊天', icon: 'comment' },
+              { key: 'members' as const, label: '成员' },
+              { key: 'playlist' as const, label: '播放列表', icon: 'list-order' },
+            ].map((tab) => (
+              <TouchableOpacity
+                key={tab.key}
+                style={[
+                  styles.tabItem,
+                  activeTab === tab.key && { borderBottomColor: theme['c-primary-font'] },
+                ]}
+                onPress={() => setActiveTab(tab.key)}
+              >
+                {tab.icon && (
+                  <Icon
+                    name={tab.icon}
+                    size={18}
+                    color={activeTab === tab.key ? theme['c-primary-font'] : theme['c-500']}
+                  />
+                )}
+                <Text
+                  style={[
+                    styles.tabText,
+                    { color: activeTab === tab.key ? theme['c-primary-font'] : theme['c-500'] },
+                  ]}
+                >
+                  {tab.label}
+                </Text>
+              </TouchableOpacity>
+            ))}
+          </View>
 
-      {/* 内容区域 */}
-      <View style={styles.content}>
+          {/* 内容区域 */}
+          <View style={styles.content}>
         {activeTab === 'chat' && (
           <>
             <FlatList
@@ -408,6 +390,8 @@ const RoomDetail: React.FC<Props> = ({ componentId, roomId }) => {
             )}
           </View>
         )}
+          </View>
+        </View>
       </View>
 
       {/* 歌单选择弹窗 */}
@@ -452,7 +436,7 @@ const RoomDetail: React.FC<Props> = ({ componentId, roomId }) => {
         </View>
       </Modal>
 
-      <PlayerBar hideRoomBar />
+      <PlayerBar />
     </PageContent>
   )
 }
@@ -492,34 +476,20 @@ const styles = StyleSheet.create({
     marginTop: 16,
     paddingTop: 16,
   },
-  navBar: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    paddingHorizontal: 16,
-    borderBottomWidth: 1,
-  },
-  backBtn: {
-    padding: 8,
-    marginLeft: -8,
-  },
-  navTitle: {
-    flex: 1,
-    fontSize: 18,
-    fontWeight: '600',
-    textAlign: 'center',
-  },
   syncBtn: {
-    padding: 8,
-    marginRight: -8,
+    width: 40,
+    height: 40,
+    alignItems: 'center',
+    justifyContent: 'center',
   },
-  roomInfo: {
-    paddingHorizontal: 16,
-    paddingTop: 12,
+  pageBody: {
+    paddingHorizontal: 12,
+    paddingTop: 8,
   },
   roomInfoContainer: {
     flexDirection: 'row',
     padding: 12,
-    borderRadius: 8,
+    borderRadius: 14,
   },
   roomInfoRow: {
     flexDirection: 'row',
@@ -533,20 +503,31 @@ const styles = StyleSheet.create({
   tabBar: {
     flexDirection: 'row',
     borderBottomWidth: 1,
-    marginTop: 12,
+    paddingHorizontal: 6,
   },
   tabItem: {
     flex: 1,
     flexDirection: 'row',
     alignItems: 'center',
     justifyContent: 'center',
-    paddingVertical: 12,
+    paddingVertical: 14,
     borderBottomWidth: 2,
     borderBottomColor: 'transparent',
   },
   tabText: {
     fontSize: 13,
     marginLeft: 4,
+  },
+  contentWrap: {
+    flex: 1,
+    paddingHorizontal: 12,
+    paddingTop: 10,
+    paddingBottom: 4,
+  },
+  contentCard: {
+    flex: 1,
+    borderRadius: 14,
+    overflow: 'hidden',
   },
   content: {
     flex: 1,

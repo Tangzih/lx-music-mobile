@@ -6,11 +6,9 @@ import {
   TextInput,
   ScrollView,
   Alert,
-  StatusBar as RNStatusBar,
 } from 'react-native'
 import { Navigation } from 'react-native-navigation'
 import { useTheme } from '@/store/theme/hook'
-import { useStatusbarHeight } from '@/store/common/hook'
 import { useListenTogether, useConnectionStatus } from '@/store/listenTogether'
 import { initService, disconnectService, getService } from '@/store/listenTogether/hook'
 import { setComponentId } from '@/core/common'
@@ -26,6 +24,8 @@ import { LISTEN_TOGETHER_ENTRY_SCREEN } from './screenNames'
 import { setConnectMode as setGlobalConnectMode } from '@/store/listenTogether/action'
 import { canDrawOverlays, requestOverlayPermission } from '@/utils/nativeModules/utils'
 import PlayerBar from '@/components/player/PlayerBar'
+import ListenTogetherHeader from '../components/Header'
+import { getListenTogetherScreenOptions } from '../navigation'
 
 interface Props {
   componentId: string
@@ -36,11 +36,6 @@ const SERVER_HISTORY_KEY = 'listenTogetherServerHistory'
 
 const Entry: React.FC<Props> = ({ componentId }) => {
   const theme = useTheme()
-  const statusBarHeight = useStatusbarHeight()
-  const nativeStatusbarHeight = RNStatusBar.currentHeight ?? 0
-  const resolvedStatusbarHeight = statusBarHeight > 0 && nativeStatusbarHeight > 0
-    ? Math.min(statusBarHeight, nativeStatusbarHeight)
-    : Math.max(statusBarHeight, nativeStatusbarHeight)
   const isConnected = useConnectionStatus()
   const { isLoading, error } = useListenTogether()
 
@@ -127,18 +122,7 @@ const Entry: React.FC<Props> = ({ componentId }) => {
           component: {
             name: ROOM_DETAIL_SCREEN,
             passProps: { roomId: 'local_room' },
-            options: {
-              topBar: {
-                visible: false,
-                height: 0,
-                drawBehind: false,
-              },
-              statusBar: {
-                drawBehind: true,
-                visible: true,
-                backgroundColor: 'transparent',
-              },
-            },
+            options: getListenTogetherScreenOptions(),
           },
         })
       } else {
@@ -146,18 +130,7 @@ const Entry: React.FC<Props> = ({ componentId }) => {
         Navigation.push(componentId, {
           component: {
             name: ROOM_LIST_SCREEN,
-            options: {
-              topBar: {
-                visible: false,
-                height: 0,
-                drawBehind: false,
-              },
-              statusBar: {
-                drawBehind: true,
-                visible: true,
-                backgroundColor: 'transparent',
-              },
-            },
+            options: getListenTogetherScreenOptions(),
           },
         })
       }
@@ -224,18 +197,7 @@ const Entry: React.FC<Props> = ({ componentId }) => {
         component: {
           name: ROOM_DETAIL_SCREEN,
           passProps: { roomId },
-          options: {
-            topBar: {
-              visible: false,
-              height: 0,
-              drawBehind: false,
-            },
-            statusBar: {
-              drawBehind: true,
-              visible: true,
-              backgroundColor: 'transparent',
-            },
-          },
+          options: getListenTogetherScreenOptions(),
         },
       })
     } catch (err) {
@@ -253,17 +215,7 @@ const Entry: React.FC<Props> = ({ componentId }) => {
 
   return (
     <PageContent skipStatusbarUpdate>
-      {/* Header */}
-      <View style={[styles.header, { paddingTop: resolvedStatusbarHeight }]}>
-        <TouchableOpacity
-          style={styles.backBtn}
-          onPress={() => Navigation.pop(componentId)}
-        >
-          <Icon name="arrow-left" size={24} color={theme['c-font']} />
-        </TouchableOpacity>
-        <Text style={[styles.title, { color: theme['c-font'] }]}>一起听</Text>
-        <View style={styles.headerRight} />
-      </View>
+      <ListenTogetherHeader title='一起听' onBack={() => Navigation.pop(componentId)} />
 
       <ScrollView style={styles.content} contentContainerStyle={styles.contentContainer}>
         {/* Join Server Section */}
@@ -351,12 +303,7 @@ const Entry: React.FC<Props> = ({ componentId }) => {
                       passProps: isInRoom
                         ? { roomId: currentRoom?.id ?? 'local_room' }
                         : {},
-                      options: {
-                        topBar: {
-                          visible: false,
-                          drawBehind: true,
-                        },
-                      },
+                      options: getListenTogetherScreenOptions(),
                     },
                   })}
                 >
@@ -447,12 +394,7 @@ const Entry: React.FC<Props> = ({ componentId }) => {
                     component: {
                       name: ROOM_DETAIL_SCREEN,
                       passProps: { roomId: currentRoom?.id ?? 'local_room' },
-                      options: {
-                        topBar: {
-                          visible: false,
-                          drawBehind: true,
-                        },
-                      },
+                      options: getListenTogetherScreenOptions(),
                     },
                   })}
                 >
@@ -517,24 +459,6 @@ const Entry: React.FC<Props> = ({ componentId }) => {
 const styles = StyleSheet.create({
   container: {
     flex: 1,
-  },
-  header: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    paddingHorizontal: 16,
-    paddingBottom: 12,
-  },
-  backBtn: {
-    padding: 8,
-  },
-  title: {
-    flex: 1,
-    fontSize: 20,
-    fontWeight: 'bold',
-    textAlign: 'center',
-  },
-  headerRight: {
-    width: 24,
   },
   content: {
     flex: 1,

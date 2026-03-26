@@ -5,12 +5,10 @@ import {
   FlatList,
   RefreshControl,
   TouchableOpacity,
-  StatusBar as RNStatusBar,
 } from 'react-native'
 import { Navigation } from 'react-native-navigation'
 import { useListenTogether, useRoomList } from '@/store/listenTogether'
 import { useTheme } from '@/store/theme/hook'
-import { useStatusbarHeight } from '@/store/common/hook'
 import { disconnectService } from '@/store/listenTogether/hook'
 import Text from '@/components/common/Text'
 import PlayerBar from '@/components/player/PlayerBar'
@@ -18,6 +16,8 @@ import { Icon } from '@/components/common/Icon'
 import Button from '@/components/common/Button'
 import PageContent from '@/components/PageContent'
 import { ROOM_DETAIL_SCREEN, CREATE_ROOM_MODAL } from './screenNames'
+import ListenTogetherHeader from '../components/Header'
+import { getListenTogetherScreenOptions } from '../navigation'
 
 interface RoomListItemProps {
   room: LX.ListenTogether.RoomInfo
@@ -29,12 +29,12 @@ const RoomListItem: React.FC<RoomListItemProps> = ({ room, onPress }) => {
 
   return (
     <TouchableOpacity
-      style={[styles.roomItem, { backgroundColor: theme.secondary }]}
+      style={[styles.roomItem, { backgroundColor: theme['c-main-background'] }]}
       onPress={onPress}
       activeOpacity={0.7}
     >
       <View style={styles.roomHeader}>
-        <Text style={[styles.roomName, { color: theme['primary-font'] }]} numberOfLines={1}>
+        <Text style={[styles.roomName, { color: theme['c-font'] }]} numberOfLines={1}>
           {room.name}
         </Text>
         {room.isPublic ? (
@@ -85,11 +85,6 @@ interface Props {
 
 const RoomList: React.FC<Props> = ({ componentId }) => {
   const theme = useTheme()
-  const statusBarHeight = useStatusbarHeight()
-  const nativeStatusbarHeight = RNStatusBar.currentHeight ?? 0
-  const resolvedStatusbarHeight = statusBarHeight > 0 && nativeStatusbarHeight > 0
-    ? Math.min(statusBarHeight, nativeStatusbarHeight)
-    : Math.max(statusBarHeight, nativeStatusbarHeight)
   const { isConnected, createRoom, joinRoom, refreshRoomList } = useListenTogether()
   const roomList = useRoomList()
 
@@ -142,12 +137,7 @@ const RoomList: React.FC<Props> = ({ componentId }) => {
                   component: {
                     name: ROOM_DETAIL_SCREEN,
                     passProps: { roomId: room.id },
-                    options: {
-                      topBar: {
-                        visible: false,
-                        drawBehind: true,
-                      },
-                    },
+                    options: getListenTogetherScreenOptions(),
                   },
                 })
               }
@@ -166,12 +156,7 @@ const RoomList: React.FC<Props> = ({ componentId }) => {
         passProps: {
           roomId: room.id,
         },
-        options: {
-          topBar: {
-            visible: false,
-            drawBehind: true,
-          },
-        },
+        options: getListenTogetherScreenOptions(),
       },
     })
   }, [componentId, joinRoom])
@@ -195,60 +180,60 @@ const RoomList: React.FC<Props> = ({ componentId }) => {
 
   return (
     <PageContent skipStatusbarUpdate>
-      {/* Header */}
-      <View style={[styles.header, { paddingTop: resolvedStatusbarHeight }]}>
-        <TouchableOpacity style={styles.backBtn} onPress={handleBack}>
-          <Icon name="arrow-left" size={24} color={theme['c-font']} />
-        </TouchableOpacity>
-        <View style={styles.headerCenter}>
-          <Text style={[styles.title, { color: theme['c-font'] }]}>房间列表</Text>
-        </View>
-        <TouchableOpacity style={styles.disconnectBtn} onPress={handleDisconnect}>
-          <Icon name="exit2" size={22} color={theme['c-font']} />
-        </TouchableOpacity>
-      </View>
+      <ListenTogetherHeader
+        title='房间列表'
+        onBack={handleBack}
+        right={(
+          <TouchableOpacity style={styles.disconnectBtn} onPress={handleDisconnect}>
+            <Icon name='exit2' size={22} color={theme['c-font']} />
+          </TouchableOpacity>
+        )}
+      />
 
       {/* Create Room Button */}
-      <View style={styles.actionBar}>
-        <Button
-          onPress={handleCreateRoom}
-          disabled={!isConnected}
-          style={[
-            styles.createBtn,
-            { backgroundColor: isConnected ? theme['c-button-background'] : theme.disabled },
-          ]}
-        >
-          <Icon name="plus" size={18} color={theme['c-button-font']} />
-          <Text style={[styles.createBtnText, { color: theme['c-button-font'] }]}>创建房间</Text>
-        </Button>
-      </View>
+      <View style={styles.pageBody}>
+        <View style={[styles.actionBar, { backgroundColor: theme['c-content-background'] }]}>
+          <Button
+            onPress={handleCreateRoom}
+            disabled={!isConnected}
+            style={[
+              styles.createBtn,
+              { backgroundColor: isConnected ? theme['c-button-background'] : theme.disabled },
+            ]}
+          >
+            <Icon name="plus" size={18} color={theme['c-button-font']} />
+            <Text style={[styles.createBtnText, { color: theme['c-button-font'] }]}>创建房间</Text>
+          </Button>
+        </View>
 
-      {/* Room List */}
-      <FlatList
-        data={roomList}
-        keyExtractor={(item) => item.id}
-        renderItem={renderRoomItem}
-        contentContainerStyle={styles.listContainer}
-        refreshControl={
-          <RefreshControl
-            refreshing={refreshing}
-            onRefresh={handleRefresh}
-            colors={[theme.primary]}
-            tintColor={theme.primary}
+        <View style={[styles.listShell, { backgroundColor: theme['c-content-background'] }]}>
+          <FlatList
+            data={roomList}
+            keyExtractor={(item) => item.id}
+            renderItem={renderRoomItem}
+            contentContainerStyle={styles.listContainer}
+            refreshControl={
+              <RefreshControl
+                refreshing={refreshing}
+                onRefresh={handleRefresh}
+                colors={[theme.primary]}
+                tintColor={theme.primary}
+              />
+            }
+            ListEmptyComponent={
+              <View style={styles.emptyContainer}>
+                <Icon name='music-off' size={48} color={theme['secondary-font']} />
+                <Text style={[styles.emptyText, { color: theme['secondary-font'] }]}>
+                  暂无房间
+                </Text>
+                <Text style={[styles.emptyHint, { color: theme['secondary-font'] }]}>
+                  点击上方"创建房间"按钮创建一个新房间
+                </Text>
+              </View>
+            }
           />
-        }
-        ListEmptyComponent={
-          <View style={styles.emptyContainer}>
-            <Icon name='music-off' size={48} color={theme['secondary-font']} />
-            <Text style={[styles.emptyText, { color: theme['secondary-font'] }]}>
-              暂无房间
-            </Text>
-            <Text style={[styles.emptyHint, { color: theme['secondary-font'] }]}>
-              点击上方"创建房间"按钮创建一个新房间
-            </Text>
-          </View>
-        }
-      />
+        </View>
+      </View>
       
       <PlayerBar />
     </PageContent>
@@ -259,36 +244,30 @@ const styles = StyleSheet.create({
   container: {
     flex: 1,
   },
-  header: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    paddingHorizontal: 16,
-    paddingBottom: 12,
-  },
-  backBtn: {
-    padding: 8,
-  },
-  headerCenter: {
+  pageBody: {
     flex: 1,
-    alignItems: 'center',
-  },
-  title: {
-    fontSize: 18,
-    fontWeight: 'bold',
+    paddingHorizontal: 12,
+    paddingTop: 8,
+    paddingBottom: 4,
   },
   disconnectBtn: {
-    padding: 8,
+    width: 40,
+    height: 40,
+    alignItems: 'center',
+    justifyContent: 'center',
   },
   actionBar: {
-    paddingHorizontal: 16,
-    paddingVertical: 8,
+    paddingHorizontal: 12,
+    paddingVertical: 12,
+    borderRadius: 14,
+    marginBottom: 10,
   },
   createBtn: {
     flexDirection: 'row',
     alignItems: 'center',
     justifyContent: 'center',
     paddingVertical: 12,
-    borderRadius: 8,
+    borderRadius: 10,
   },
   createBtnText: {
     color: '#fff',
@@ -296,8 +275,14 @@ const styles = StyleSheet.create({
     fontWeight: '500',
     marginLeft: 8,
   },
+  listShell: {
+    flex: 1,
+    borderRadius: 14,
+    overflow: 'hidden',
+  },
   listContainer: {
     padding: 12,
+    paddingBottom: 24,
   },
   roomItem: {
     borderRadius: 12,
