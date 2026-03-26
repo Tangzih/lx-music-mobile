@@ -36,7 +36,7 @@ export default memo(({ isHome = false, hideRoomBar = false }: { isHome?: boolean
         </View>
       </View>
     </View>
-  ), [theme, isHome])
+  ), [theme, isHome, hideRoomBar])
 
   // console.log('render pb')
 

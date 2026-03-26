@@ -10,6 +10,7 @@ import {
   Modal,
   ActivityIndicator,
   Alert,
+  StatusBar as RNStatusBar,
 } from 'react-native'
 import { Navigation } from 'react-native-navigation'
 import { useListenTogether, useCurrentRoom, useRoomMembers, useRoomMessages, useConnectionStatus, useListenTogetherState } from '@/store/listenTogether'
@@ -81,6 +82,10 @@ const MemberItem: React.FC<MemberItemProps> = ({ member, isHost }) => {
 const RoomDetail: React.FC<Props> = ({ componentId, roomId }) => {
   const theme = useTheme()
   const statusbarHeight = useStatusbarHeight()
+  const nativeStatusbarHeight = RNStatusBar.currentHeight ?? 0
+  const resolvedStatusbarHeight = statusbarHeight > 0 && nativeStatusbarHeight > 0
+    ? Math.min(statusbarHeight, nativeStatusbarHeight)
+    : Math.max(statusbarHeight, nativeStatusbarHeight)
   const [messageInput, setMessageInput] = useState('')
   const [activeTab, setActiveTab] = useState<'chat' | 'members' | 'playlist'>('chat')
   const [hasJoined, setHasJoined] = useState(false)
@@ -260,8 +265,8 @@ const RoomDetail: React.FC<Props> = ({ componentId, roomId }) => {
           styles.navBar,
           {
             borderBottomColor: theme['c-primary-light-100-alpha-300'],
-            height: scaleSizeH(HEADER_HEIGHT) + statusbarHeight,
-            paddingTop: statusbarHeight,
+            minHeight: scaleSizeH(HEADER_HEIGHT) + resolvedStatusbarHeight,
+            paddingTop: resolvedStatusbarHeight,
           },
         ]}
       >

@@ -6,6 +6,7 @@ import {
   TextInput,
   ScrollView,
   Alert,
+  StatusBar as RNStatusBar,
 } from 'react-native'
 import { Navigation } from 'react-native-navigation'
 import { useTheme } from '@/store/theme/hook'
@@ -36,6 +37,10 @@ const SERVER_HISTORY_KEY = 'listenTogetherServerHistory'
 const Entry: React.FC<Props> = ({ componentId }) => {
   const theme = useTheme()
   const statusBarHeight = useStatusbarHeight()
+  const nativeStatusbarHeight = RNStatusBar.currentHeight ?? 0
+  const resolvedStatusbarHeight = statusBarHeight > 0 && nativeStatusbarHeight > 0
+    ? Math.min(statusBarHeight, nativeStatusbarHeight)
+    : Math.max(statusBarHeight, nativeStatusbarHeight)
   const isConnected = useConnectionStatus()
   const { isLoading, error } = useListenTogether()
 
@@ -217,7 +222,7 @@ const Entry: React.FC<Props> = ({ componentId }) => {
   return (
     <PageContent skipStatusbarUpdate>
       {/* Header */}
-      <View style={[styles.header, { paddingTop: statusBarHeight }]}>
+      <View style={[styles.header, { paddingTop: resolvedStatusbarHeight }]}>
         <TouchableOpacity
           style={styles.backBtn}
           onPress={() => Navigation.pop(componentId)}

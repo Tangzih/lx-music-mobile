@@ -410,6 +410,84 @@ const handlePlayNext = async(playMusicInfo: LX.Player.PlayMusicInfo) => {
   setPlayMusicInfo(playMusicInfo.listId, playMusicInfo.musicInfo, playMusicInfo.isTempPlay)
   await handlePlay()
 }
+
+export const playMusicInfo = async(listId: string | null, musicInfo: LX.Music.MusicInfo | LX.Download.ListItem | null, isTempPlay = false) => {
+  setPlayListId(listId)
+  setPlayMusicInfo(listId, musicInfo, isTempPlay)
+  await handlePlay()
+}
+
+const syncRoomSongChange = async(direction: 'next' | 'prev'): Promise<boolean> => {
+  if (!isInRoom() || !canControlPlayback()) return false
+
+  const [{ getState }, { getService }] = await Promise.all([
+    import('@/store/listenTogether/state'),
+    import('@/store/listenTogether/hook'),
+  ])
+  const roomState = getState()
+  const playbackState = roomState.currentRoom?.playbackState
+  const service = getService()
+
+  if (!service || !playbackState?.playlist?.length) return false
+
+  const playlist = playbackState.playlist
+  let currentIndex = playbackState.currentIndex
+  if (currentIndex < 0 || currentIndex >= playlist.length) {
+    const currentSongId = playbackState.currentSong?.id ?? playerState.playMusicInfo.musicInfo?.id
+    currentIndex = currentSongId ? playlist.findIndex(item => item.id === currentSongId) : -1
+  }
+  if (currentIndex < 0) currentIndex = 0
+
+  let targetIndex = currentIndex
+  let togglePlayMethod = settingState.setting['player.togglePlayMethod']
+  switch (direction) {
+    case 'next':
+      switch (togglePlayMethod) {
+        case 'list':
+        case 'singleLoop':
+        case 'none':
+          togglePlayMethod = 'listLoop'
+      }
+      switch (togglePlayMethod) {
+        case 'listLoop':
+          targetIndex = currentIndex === playlist.length - 1 ? 0 : currentIndex + 1
+          break
+        case 'random':
+          targetIndex = getRandom(0, playlist.length)
+          break
+        case 'list':
+          targetIndex = currentIndex === playlist.length - 1 ? -1 : currentIndex + 1
+          break
+        case 'singleLoop':
+          break
+      }
+      break
+    case 'prev':
+      switch (togglePlayMethod) {
+        case 'list':
+        case 'singleLoop':
+        case 'none':
+          togglePlayMethod = 'listLoop'
+      }
+      switch (togglePlayMethod) {
+        case 'random':
+          targetIndex = getRandom(0, playlist.length)
+          break
+        case 'listLoop':
+        case 'list':
+          targetIndex = currentIndex === 0 ? playlist.length - 1 : currentIndex - 1
+          break
+        case 'singleLoop':
+          break
+      }
+      break
+  }
+
+  if (targetIndex < 0 || targetIndex >= playlist.length) return true
+
+  service.changeSong(targetIndex)
+  return true
+}
 /**
  * 下一曲（外部触发）
  * 进房间中若无权限则拦截
@@ -419,6 +497,7 @@ export const playNext = async(isAutoToggle = false): Promise<void> => {
     global.app_event.toast?.(global.i18n.t?.('listen_together__no_permission') ?? '当前在一起听房间中，无播放控制权限')
     return
   }
+  if (!isAutoToggle && await syncRoomSongChange('next')) return
   if (playerState.tempPlayList.length) { // 如果稍后播放列表存在歌曲则直接播放改列表的歌曲
     const playMusicInfo = playerState.tempPlayList[0]
     removeTempPlayList(0)
@@ -523,6 +602,7 @@ export const playPrev = async(isAutoToggle = false): Promise<void> => {
     global.app_event.toast?.(global.i18n.t?.('listen_together__no_permission') ?? '当前在一起听房间中，无播放控制权限')
     return
   }
+  if (!isAutoToggle && await syncRoomSongChange('prev')) return
   const playMusicInfo = playerState.playMusicInfo
   if (playMusicInfo.musicInfo == null) return handleToggleStop()
   const playInfo = playerState.playInfo
