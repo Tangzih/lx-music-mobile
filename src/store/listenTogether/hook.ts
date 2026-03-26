@@ -28,6 +28,26 @@ import { LISTEN_TOGETHER_ROOM_PLAYLIST_ID } from '@/core/listenTogether/constant
 let serviceInstance: ListenTogetherService | null = null
 let serviceConfig: { serverUrl: string; userId: string } | null = null
 
+/**
+ * Clean up player state when leaving a room.
+ * Stops playback and resets playlist / played / temp lists so the player
+ * does not continue operating on the room playlist after exit.
+ */
+const cleanupPlayerState = () => {
+  void Promise.all([
+    import('@/core/player/player'),
+    import('@/core/player/playInfo'),
+    import('@/core/player/playedList'),
+    import('@/core/player/tempPlayList'),
+  ]).then(([{ stop }, { setPlayMusicInfo, setPlayListId }, { clearPlayedList }, { clearTempPlayeList }]) => {
+    void stop()
+    clearPlayedList()
+    clearTempPlayeList()
+    setPlayMusicInfo(null, null)
+    setPlayListId(null)
+  })
+}
+
 export const initService = async (serverUrl: string, userId: string, userName?: string, userAvatar?: string) => {
   if (serviceInstance) {
     serviceInstance.disconnect()
@@ -74,6 +94,7 @@ export const initService = async (serverUrl: string, userId: string, userName?: 
   serviceInstance.on('roomDissolved', (data) => {
     // 房间被解散：清空所有房间相关状态
     setMusicList(LISTEN_TOGETHER_ROOM_PLAYLIST_ID, [])
+    cleanupPlayerState()
     setInRoom(false)
     setCurrentRoom(null)
     setMembers([])
@@ -98,7 +119,12 @@ export const initService = async (serverUrl: string, userId: string, userName?: 
         void Promise.all([
           import('@/core/player/playInfo'),
           import('@/core/player/player'),
-        ]).then(([{ setPlayMusicInfo }, { setMusicUrl }]) => {
+          import('@/core/player/playedList'),
+          import('@/core/player/tempPlayList'),
+        ]).then(([{ setPlayMusicInfo, setPlayListId }, { setMusicUrl }, { clearPlayedList }, { clearTempPlayeList }]) => {
+          setPlayListId(LISTEN_TOGETHER_ROOM_PLAYLIST_ID)
+          clearPlayedList()
+          clearTempPlayeList()
           setPlayMusicInfo(LISTEN_TOGETHER_ROOM_PLAYLIST_ID, state.currentSong!, false)
           setMusicUrl(state.currentSong!)
         })
@@ -132,6 +158,7 @@ export const initService = async (serverUrl: string, userId: string, userName?: 
     const { currentRoom } = getState()
     if (currentRoom?.hostId === memberId) {
       setMusicList(LISTEN_TOGETHER_ROOM_PLAYLIST_ID, [])
+      cleanupPlayerState()
       setInRoom(false)
       setCurrentRoom(null)
       setMembers([])
@@ -215,6 +242,7 @@ export const disconnectService = () => {
   }
   setConnectionStatus(false)
   setMusicList(LISTEN_TOGETHER_ROOM_PLAYLIST_ID, [])
+  if (currentState.isInRoom) cleanupPlayerState()
   setInRoom(false)
   setCurrentRoom(null)
   setMembers([])
@@ -326,6 +354,8 @@ export const useListenTogether = () => {
       // 本地建房：直接调用全局的 disconnectService，关闭本机的 TCP 服务器
       disconnectService()
     } else {
+      setMusicList(LISTEN_TOGETHER_ROOM_PLAYLIST_ID, [])
+      cleanupPlayerState()
       setInRoom(false)
       setCurrentRoom(null)
       setMembers([])
@@ -348,6 +378,7 @@ export const useListenTogether = () => {
     }
     serviceInstance.leaveRoom()
     setMusicList(LISTEN_TOGETHER_ROOM_PLAYLIST_ID, [])
+    cleanupPlayerState()
     setInRoom(false)
     setCurrentRoom(null)
     setMembers([])

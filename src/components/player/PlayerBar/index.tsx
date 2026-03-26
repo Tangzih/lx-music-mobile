@@ -13,7 +13,7 @@ import { useSettingValue } from '@/store/setting/hook'
 import ListenTogetherMiniBar from '@/components/ListenTogetherMiniBar'
 
 
-export default memo(({ isHome = false }: { isHome?: boolean }) => {
+export default memo(({ isHome = false, hideRoomBar = false }: { isHome?: boolean; hideRoomBar?: boolean }) => {
   // const { onLayout, ...layout } = useLayout()
   const { keyboardShown } = useKeyboard()
   const theme = useTheme()
@@ -21,7 +21,7 @@ export default memo(({ isHome = false }: { isHome?: boolean }) => {
 
   const playerComponent = useMemo(() => (
     <View style={{ ...styles.container, backgroundColor: theme['c-content-background'] }}>
-      <ListenTogetherMiniBar />
+      {!hideRoomBar && <ListenTogetherMiniBar />}
       <View style={styles.playerContent}>
         <Pic isHome={isHome} />
         <View style={styles.center}>
