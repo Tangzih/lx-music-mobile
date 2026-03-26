@@ -117,16 +117,13 @@ export const initService = async (serverUrl: string, userId: string, userName?: 
       // Trigger actual playback when the current song changes (room-initiated song switch)
       if (state.currentSong && state.currentSong.id !== prevSongId) {
         void Promise.all([
-          import('@/core/player/playInfo'),
           import('@/core/player/player'),
           import('@/core/player/playedList'),
           import('@/core/player/tempPlayList'),
-        ]).then(([{ setPlayMusicInfo, setPlayListId }, { setMusicUrl }, { clearPlayedList }, { clearTempPlayeList }]) => {
-          setPlayListId(LISTEN_TOGETHER_ROOM_PLAYLIST_ID)
+        ]).then(([{ playMusicInfo }, { clearPlayedList }, { clearTempPlayeList }]) => {
           clearPlayedList()
           clearTempPlayeList()
-          setPlayMusicInfo(LISTEN_TOGETHER_ROOM_PLAYLIST_ID, state.currentSong!, false)
-          setMusicUrl(state.currentSong!)
+          void playMusicInfo(LISTEN_TOGETHER_ROOM_PLAYLIST_ID, state.currentSong!, false)
         })
       }
     }
