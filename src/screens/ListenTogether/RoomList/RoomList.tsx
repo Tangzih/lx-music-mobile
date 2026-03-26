@@ -189,7 +189,7 @@ const RoomList: React.FC<Props> = ({ componentId }) => {
   ), [handleJoinRoom])
 
   return (
-    <PageContent>
+    <PageContent skipStatusbarUpdate>
       {/* Header */}
       <View style={[styles.header, { paddingTop: statusBarHeight }]}>
         <TouchableOpacity style={styles.backBtn} onPress={handleBack}>

@@ -252,7 +252,7 @@ const RoomDetail: React.FC<Props> = ({ componentId, roomId }) => {
   }, [canControlPlayback, isOverwritePlaylist, uploadPlaylist, currentRoom?.playbackState?.playlist])
 
   return (
-    <PageContent>
+    <PageContent skipStatusbarUpdate>
       <StatusBar />
       {/* 顶部导航 */}
       <View
@@ -447,7 +447,7 @@ const RoomDetail: React.FC<Props> = ({ componentId, roomId }) => {
         </View>
       </Modal>
 
-      <PlayerBar />
+      <PlayerBar hideRoomBar />
     </PageContent>
   )
 }
