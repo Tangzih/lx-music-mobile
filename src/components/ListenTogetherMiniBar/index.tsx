@@ -11,10 +11,7 @@ import Text from '@/components/common/Text'
 import { Icon } from '@/components/common/Icon'
 import { useTheme } from '@/store/theme/hook'
 import { COMPONENT_IDS } from '@/config/constant'
-import { getState as getLTState } from '@/store/listenTogether/state'
-import { ROOM_DETAIL_SCREEN } from '@/screens/ListenTogether/RoomDetail/screenNames'
-import themeState from '@/store/theme/state'
-import { getStatusBarStyle } from '@/navigation/navigation'
+import { pushListenTogetherEntryScreen } from '@/navigation/navigation'
 
 export default function ListenTogetherMiniBar() {
   const theme = useTheme()
@@ -22,38 +19,9 @@ export default function ListenTogetherMiniBar() {
   const currentRoom = useCurrentRoom()
 
   const handlePress = useCallback(() => {
-    const ltState = getLTState()
-    if (!ltState.currentRoom) return
-    const theme = themeState.theme
-    // 跳回 RoomDetail，不重新加入（已在房间中）
-    Navigation.push(COMPONENT_IDS.home, {
-      component: {
-        name: ROOM_DETAIL_SCREEN,
-        passProps: {
-          roomId: ltState.currentRoom.id,
-        },
-        options: {
-          topBar: {
-            visible: false,
-            height: 0,
-            drawBehind: false,
-          },
-          statusBar: {
-            drawBehind: true,
-            visible: true,
-            style: getStatusBarStyle(theme.isDark),
-            backgroundColor: 'transparent',
-          },
-          navigationBar: {
-            backgroundColor: theme['c-content-background'],
-          },
-          layout: {
-            componentBackgroundColor: theme['c-content-background'],
-          },
-        },
-      },
-    })
-  }, [])
+    if (!currentRoom) return
+    pushListenTogetherEntryScreen(COMPONENT_IDS.home)
+  }, [currentRoom])
 
   if (!isInRoom || !currentRoom) return null
 
