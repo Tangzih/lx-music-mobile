@@ -11,6 +11,7 @@ import { createStyle } from '@/utils/tools'
 import { useTheme } from '@/store/theme/hook'
 import { useSettingValue } from '@/store/setting/hook'
 import ListenTogetherMiniBar from '@/components/ListenTogetherMiniBar'
+import { useIsInRoom } from '@/store/listenTogether'
 
 
 export default memo(({ isHome = false, hideRoomBar = false }: { isHome?: boolean; hideRoomBar?: boolean }) => {
@@ -18,11 +19,19 @@ export default memo(({ isHome = false, hideRoomBar = false }: { isHome?: boolean
   const { keyboardShown } = useKeyboard()
   const theme = useTheme()
   const autoHidePlayBar = useSettingValue('common.autoHidePlayBar')
+  const isInRoom = useIsInRoom()
+  const showRoomBar = !hideRoomBar && isInRoom
 
   const playerComponent = useMemo(() => (
-    <View style={{ ...styles.container, backgroundColor: theme['c-content-background'] }}>
-      {!hideRoomBar && <ListenTogetherMiniBar />}
-      <View style={styles.playerContent}>
+    <View style={{
+      ...styles.container,
+      backgroundColor: theme['c-content-background'],
+      borderTopLeftRadius: showRoomBar ? 0 : styles.container.borderTopLeftRadius,
+      borderTopRightRadius: showRoomBar ? 0 : styles.container.borderTopRightRadius,
+      overflow: showRoomBar ? 'hidden' : 'visible',
+    }}>
+      {showRoomBar ? <ListenTogetherMiniBar /> : null}
+      <View style={{ ...styles.playerContent, marginTop: showRoomBar ? -1 : 0 }}>
         <Pic isHome={isHome} />
         <View style={styles.center}>
           <Title isHome={isHome} />
@@ -36,7 +45,7 @@ export default memo(({ isHome = false, hideRoomBar = false }: { isHome?: boolean
         </View>
       </View>
     </View>
-  ), [theme, isHome, hideRoomBar])
+  ), [theme, isHome, showRoomBar])
 
   // console.log('render pb')
 

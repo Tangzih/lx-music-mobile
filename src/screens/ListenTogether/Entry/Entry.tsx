@@ -127,12 +127,38 @@ const Entry: React.FC<Props> = ({ componentId }) => {
           component: {
             name: ROOM_DETAIL_SCREEN,
             passProps: { roomId: 'local_room' },
+            options: {
+              topBar: {
+                visible: false,
+                height: 0,
+                drawBehind: false,
+              },
+              statusBar: {
+                drawBehind: true,
+                visible: true,
+                backgroundColor: 'transparent',
+              },
+            },
           },
         })
       } else {
         // Standard server WebSocket: wait for handshake then show room list
         Navigation.push(componentId, {
-          component: { name: ROOM_LIST_SCREEN },
+          component: {
+            name: ROOM_LIST_SCREEN,
+            options: {
+              topBar: {
+                visible: false,
+                height: 0,
+                drawBehind: false,
+              },
+              statusBar: {
+                drawBehind: true,
+                visible: true,
+                backgroundColor: 'transparent',
+              },
+            },
+          },
         })
       }
     } catch (err) {
@@ -201,7 +227,13 @@ const Entry: React.FC<Props> = ({ componentId }) => {
           options: {
             topBar: {
               visible: false,
+              height: 0,
+              drawBehind: false,
+            },
+            statusBar: {
               drawBehind: true,
+              visible: true,
+              backgroundColor: 'transparent',
             },
           },
         },
