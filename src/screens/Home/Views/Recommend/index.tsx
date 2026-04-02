@@ -348,11 +348,10 @@ export default memo(() => {
 const styles = createStyle({
   container: {
     flex: 1,
-    paddingTop: 10,
   },
   headerContainer: {
     zIndex: 2,
-    height: 46, // 固定高度，与header + padding一致
+    height: 38,
   },
   header: {
     flexDirection: 'row',
@@ -360,8 +359,7 @@ const styles = createStyle({
     alignItems: 'center',
     paddingLeft: 15,
     paddingRight: 15,
-    paddingBottom: 10,
-    height: 46, // 固定高度
+    height: 38,
   },
   headerButtons: {
     flexDirection: 'row',
