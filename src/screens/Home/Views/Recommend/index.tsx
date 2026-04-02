@@ -358,7 +358,6 @@ export default memo(() => {
 const styles = createStyle({
   container: {
     flex: 1,
-    paddingTop: 10,
   },
   headerContainer: {
     zIndex: 2,
