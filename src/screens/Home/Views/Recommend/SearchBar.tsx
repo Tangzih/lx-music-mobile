@@ -143,7 +143,7 @@ const styles = createStyle({
     left: 0,
     top: 0,
     width: '100%',
-    height: 46, // 固定高度，与 headerContainer 一致
+    height: 46,
     flexDirection: 'row',
     paddingLeft: 10,
     borderBottomWidth: BorderWidths.normal,

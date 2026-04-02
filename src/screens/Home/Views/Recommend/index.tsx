@@ -362,7 +362,7 @@ const styles = createStyle({
   },
   headerContainer: {
     zIndex: 2,
-    height: 36, // 与"我的列表"的ActiveList高度一致
+    height: 46,
   },
   header: {
     flexDirection: 'row',
@@ -370,7 +370,7 @@ const styles = createStyle({
     alignItems: 'center',
     paddingLeft: 15,
     paddingRight: 15,
-    height: 36, // 固定高度，与"我的列表"保持一致
+    height: 46,
   },
   headerButtons: {
     flexDirection: 'row',
