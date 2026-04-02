@@ -141,7 +141,7 @@ const styles = createStyle({
     left: 0,
     top: 0,
     width: '100%',
-    height: 46,
+    height: 36,
     flexDirection: 'row',
     borderBottomWidth: BorderWidths.normal,
   },

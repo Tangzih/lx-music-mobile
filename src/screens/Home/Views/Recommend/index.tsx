@@ -361,7 +361,7 @@ const styles = createStyle({
   },
   headerContainer: {
     zIndex: 2,
-    height: 46,
+    height: 36,
   },
   header: {
     flexDirection: 'row',
@@ -369,7 +369,7 @@ const styles = createStyle({
     alignItems: 'center',
     paddingLeft: 15,
     paddingRight: 15,
-    height: 46,
+    height: 36,
   },
   headerButtons: {
     flexDirection: 'row',
