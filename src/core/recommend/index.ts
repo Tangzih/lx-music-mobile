@@ -150,6 +150,14 @@ ${musicList.map((song, index) => `${index + 1}. ${song}`).join('\n')}
 请分析这些歌曲，推测用户的音乐喜好，并推荐${recommendCount}首可能喜欢的新歌曲。`
   }
 
+  // 添加附加提示词（放在前面，让用户要求的优先级更高）
+  if (extraPrompt && extraPrompt.trim()) {
+    prompt += `\n\n重要要求：${extraPrompt.trim()}`
+
+    // 如果用户指定了特定要求，强调必须达到推荐数量
+    prompt += `\n\n注意：必须推荐满${recommendCount}首歌曲。如果指定的歌手/风格歌曲不足，请推荐风格相似的其他歌曲，但必须严格遵循上述重要要求。`
+  }
+
   // 添加已推荐歌曲信息，避免重复
   if (recommendedSongs && recommendedSongs.length > 0) {
     prompt += `
@@ -175,14 +183,6 @@ ${existedList.map((song, index) => `${index + 1}. ${song}`).join('\n')}`
 
 特别注意：以下歌曲已被尝试搜索但未能找到资源，请避免再次推荐这些具体歌曲：
 ${failedList.map((song, index) => `${index + 1}. ${song}`).join('\n')}`
-  }
-
-  // 添加附加提示词
-  if (extraPrompt && extraPrompt.trim()) {
-    prompt += `\n\n附加要求：${extraPrompt.trim()}`
-
-    // 如果用户指定了特定要求，强调必须达到推荐数量
-    prompt += `\n\n重要：必须推荐满${recommendCount}首歌曲。如果指定的歌手/风格歌曲不足，请推荐风格相似的其他歌曲。`
   }
 
   // Token限制检查和调整
@@ -493,7 +493,8 @@ export const fetchRecommendations = async(
     attempt: number
   }) => void, // 改为回调函数
   onError?: (error: string) => void,
-  onProgress?: (status: string) => void
+  onProgress?: (status: string) => void,
+  signal?: AbortSignal
 ): Promise<LX.Music.MusicInfoOnline[]> => {
   const apiHost = settingState.setting['recommend.apiHost']
   const apiKey = settingState.setting['recommend.apiKey']
@@ -553,7 +554,7 @@ export const fetchRecommendations = async(
 
       // 调用 AI API 获取推荐
       onProgress?.(`获取 AI 推荐中... (第${attempt}次，还需${needCount}首)`)
-      const { songs: recommendedSongList, response } = await callRecommendAPI(apiHost, apiKey, model, prompt, needCount)
+      const { songs: recommendedSongList, response } = await callRecommendAPI(apiHost, apiKey, model, prompt, needCount, signal)
 
       // 记录 AI 日志（通过回调）
       onAILog?.({

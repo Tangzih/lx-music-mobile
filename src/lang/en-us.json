@@ -50,6 +50,7 @@
   "exit_app_tip": "Are you sure you want to exit the app?",
   "recommend_get": "Get Recommendations",
   "recommend_loading": "Getting recommendations...",
+  "recommend_cancel": "Cancel",
   "recommend_error": "Failed to get recommendations",
   "recommend_empty_tip": "No recommended songs, click to get recommendations",
   "recommend_analyzing": "Analyzing playlist...",

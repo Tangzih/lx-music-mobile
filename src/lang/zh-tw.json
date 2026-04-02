@@ -50,6 +50,7 @@
   "exit_app_tip": "確定要退出應用嗎？",
   "recommend_get": "獲取推薦",
   "recommend_loading": "獲取推薦中...",
+  "recommend_cancel": "取消推薦",
   "recommend_error": "獲取推薦失敗",
   "recommend_empty_tip": "暫無推薦歌曲，點擊獲取推薦",
   "recommend_analyzing": "分析歌單中...",
