@@ -171,6 +171,25 @@ const setIsLoading = (isLoading: boolean) => {
 }
 
 /**
+ * 设置 AbortController
+ */
+const setAbortController = (controller: AbortController | null) => {
+  recommendState.abortController = controller
+}
+
+/**
+ * 取消推荐请求
+ */
+const cancelRecommendations = () => {
+  if (recommendState.abortController) {
+    recommendState.abortController.abort()
+    setAbortController(null)
+  }
+  setIsLoading(false)
+  setProgress('')
+}
+
+/**
  * 设置错误信息
  */
 const setError = (error: string | null) => {
@@ -190,6 +209,14 @@ const setProgress = (progress: string) => {
  * 获取推荐歌曲
  */
 const getRecommendations = async(): Promise<void> => {
+  // 如果已经在加载中，先取消之前的请求
+  if (recommendState.abortController) {
+    recommendState.abortController.abort()
+  }
+
+  // 创建新的 AbortController
+  const abortController = new AbortController()
+  setAbortController(abortController)
   setIsLoading(true)
   setError(null)
 
@@ -199,7 +226,8 @@ const getRecommendations = async(): Promise<void> => {
       recommendState.recommendList, // 传入当前推荐列表
       (log) => addAILog(log), // 日志回调
       (error) => setError(error),
-      (status) => setProgress(status)
+      (status) => setProgress(status),
+      abortController.signal
     )
 
     // 2. 追加到现有列表
@@ -225,13 +253,19 @@ const getRecommendations = async(): Promise<void> => {
       setProgress('')
     }
   } catch (error: any) {
-    // 如果已有列表，用 toast 显示错误（在父组件处理）
-    if (recommendState.recommendList.length === 0) {
-      setError(error.message || '获取推荐失败')
+    // 如果是用户取消，不显示错误
+    if (error.name === 'AbortError') {
+      console.log('[推荐] 用户取消推荐请求')
+    } else {
+      // 如果已有列表，用 toast 显示错误（在父组件处理）
+      if (recommendState.recommendList.length === 0) {
+        setError(error.message || '获取推荐失败')
+      }
     }
     setProgress('')
   } finally {
     setIsLoading(false)
+    setAbortController(null)
   }
 }
 
@@ -346,4 +380,5 @@ export default {
   clearRecommendList,
   initRecommendList,
   removeSongsFromList,
+  cancelRecommendations,
 }

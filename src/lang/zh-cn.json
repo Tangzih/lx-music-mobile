@@ -50,6 +50,7 @@
   "exit_app_tip": "确定要退出应用吗？",
   "recommend_get": "获取推荐",
   "recommend_loading": "获取推荐中...",
+  "recommend_cancel": "取消推荐",
   "recommend_error": "获取推荐失败",
   "recommend_empty_tip": "暂无推荐歌曲，点击获取推荐",
   "recommend_analyzing": "分析歌单中...",

@@ -23,6 +23,7 @@ export interface ListType {
   setIsMultiSelectMode: (isMultiSelectMode: boolean) => void
   setSelectMode: (mode: SelectMode) => void
   selectAll: (isAll: boolean) => void
+  invertSelection: () => void
   getSelectedList: () => LX.List.ListMusics
   scrollToInfo: (info: LX.Music.MusicInfo) => void
   scrollToTop: () => void
@@ -60,6 +61,12 @@ const List = forwardRef<ListType, ListProps>(({ musicList, onShowMenu, onMuiltSe
       }
       selectedListRef.current = list
       setSelectedList(list)
+    },
+    invertSelection() {
+      // 反选：已选的取消，未选的选中
+      const newList = currentList.filter(item => !selectedListRef.current.includes(item))
+      selectedListRef.current = newList
+      setSelectedList(newList)
     },
     getSelectedList() {
       return selectedListRef.current

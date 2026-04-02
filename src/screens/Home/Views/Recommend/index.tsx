@@ -176,6 +176,10 @@ export default memo(() => {
     void recommendActions.getRecommendations()
   }, [])
 
+  const handleCancelRecommendations = useCallback(() => {
+    recommendActions.cancelRecommendations()
+  }, [])
+
   const handleMultiSelect = useCallback(() => {
     isMultiSelectModeRef.current = true
     setShowHeader(false) // 隐藏header
@@ -285,9 +289,15 @@ export default memo(() => {
               <Text size={14} color={theme['c-primary']}>{t('search')}</Text>
             </Button>
             <View style={styles.buttonSpacing} />
-            <Button onPress={handleGetRecommendations} disabled={isLoading}>
-              <Text size={14} color={theme['c-primary']}>{t('recommend_get')}</Text>
-            </Button>
+            {isLoading ? (
+              <Button onPress={handleCancelRecommendations}>
+                <Text size={14} color={theme['c-primary']}>{t('recommend_cancel')}</Text>
+              </Button>
+            ) : (
+              <Button onPress={handleGetRecommendations}>
+                <Text size={14} color={theme['c-primary']}>{t('recommend_get')}</Text>
+              </Button>
+            )}
           </View>
         </View>
         <MultipleModeBar
@@ -352,7 +362,7 @@ const styles = createStyle({
   },
   headerContainer: {
     zIndex: 2,
-    height: 46, // 固定高度，与header + padding一致
+    height: 36, // 与"我的列表"的ActiveList高度一致
   },
   header: {
     flexDirection: 'row',
@@ -360,8 +370,7 @@ const styles = createStyle({
     alignItems: 'center',
     paddingLeft: 15,
     paddingRight: 15,
-    paddingBottom: 10,
-    height: 46, // 固定高度
+    height: 36, // 固定高度，与"我的列表"保持一致
   },
   headerButtons: {
     flexDirection: 'row',

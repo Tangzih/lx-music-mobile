@@ -23,6 +23,11 @@ export interface InitState {
    * 上次清空推荐列表的时间戳
    */
   lastClearTime: number
+
+  /**
+   * 用于取消推荐请求的 AbortController
+   */
+  abortController: AbortController | null
 }
 
 const state: InitState = {
@@ -31,6 +36,7 @@ const state: InitState = {
   error: null,
   progress: '',
   lastClearTime: 0,
+  abortController: null,
 }
 
 export default state

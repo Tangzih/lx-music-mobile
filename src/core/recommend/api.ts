@@ -57,7 +57,8 @@ export const callRecommendAPI = async(
   apiKey: string,
   model: string,
   prompt: string,
-  recommendCount: number
+  recommendCount: number,
+  signal?: AbortSignal
 ): Promise<RecommendAPIResult> => {
   const url = apiHost.replace(/\/+$/, '') + '/chat/completions'
 
@@ -102,6 +103,7 @@ export const callRecommendAPI = async(
       'Authorization': `Bearer ${apiKey}`,
     },
     body: JSON.stringify(requestBody),
+    signal,
   })
 
   if (!response.ok) {
@@ -117,10 +119,10 @@ export const callRecommendAPI = async(
 
   const content = data.choices[0].message.content.trim()
 
-  // 尝试解析 JSON 数组
+  // 只提取 JSON 数组内容（兼容任何模型格式，包括深度思考模型）
+  // 从响应中提取第一个方括号包裹的 JSON 数组
   let songs: RecommendSong[] = []
   try {
-    // 尝试直接解析 JSON
     const jsonMatch = content.match(/\[[\s\S]*\]/)
     if (jsonMatch) {
       const jsonArray = JSON.parse(jsonMatch[0])
